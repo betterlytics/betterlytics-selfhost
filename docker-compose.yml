@@ -1,0 +1,149 @@
+services:
+  proxy:
+    build:
+      context: ./base/proxy
+      dockerfile: ./Dockerfile
+    container_name: proxy
+    hostname: proxy
+    volumes:
+      - ./base/static:/usr/share/nginx/html:ro
+      - /etc/letsencrypt:/etc/letsencrypt
+      - ./ssl/certbot:/var/www/certbot
+    restart: unless-stopped
+    depends_on:
+      init:
+        condition: service_completed_successfully
+      backend:
+        condition: service_started
+      dashboard:
+        condition: service_started
+      docs:
+        condition: service_started
+    ports:
+      - 80:80
+      - 443:443
+    networks:
+      - proxy_network
+
+  backend:
+    image: ghcr.io/betterlytics/betterlytics-backend:main
+    container_name: backend
+    hostname: backend
+    env_file:
+      - .env
+      - ./base/.env.base
+    depends_on:
+      init:
+        condition: service_completed_successfully
+    networks:
+      - proxy_network
+      - clickhouse_network
+      - monitoring_network
+
+  dashboard:
+    image: ghcr.io/betterlytics/betterlytics-dashboard:main
+    env_file:
+      - .env
+      - ./base/.env.base
+    restart: unless-stopped
+    container_name: dashboard
+    hostname: dashboard
+    depends_on:
+      init:
+        condition: service_completed_successfully
+    networks:
+      - proxy_network
+      - postgres_network
+      - clickhouse_network
+      - monitoring_network
+
+  clickhouse:
+    image: clickhouse/clickhouse-server:latest
+    user: 101:101
+    container_name: clickhouse
+    hostname: clickhouse
+    restart: unless-stopped
+    env_file:
+      - .env
+      - ./base/.env.base
+    volumes:
+      - clickhouse_prod_data:/var/lib/clickhouse/
+      - clickhouse_prod_users:/etc/clickhouse-server/users.d/
+      - ./clickhouse-logs:/var/log/clickhouse-server/
+      - ./clickhouse-config/config.d/config.xml:/etc/clickhouse-server/config.d/config.xml
+      - ./clickhouse-config/setup/:/docker-entrypoint-initdb.d/
+    ulimits:
+      nofile:
+        soft: 262144
+        hard: 262144
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8123/ping"]
+      interval: 5s
+      timeout: 2s
+      retries: 10
+      start_period: 10s
+    networks:
+      - clickhouse_network
+
+  postgres:
+    image: postgres:latest
+    container_name: postgres
+    hostname: postgres
+    restart: unless-stopped
+    env_file:
+      - .env
+      - ./base/.env.base
+    volumes:
+      - postgres_prod_data:/var/lib/postgresql/data/
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    networks:
+      - postgres_network
+
+  init:
+    image: node:20-slim
+    container_name: init
+    hostname: init
+    env_file:
+      - .env
+      - ./base/.env.base
+    volumes:
+      - ./package.json:/app/package.json:ro
+      - ./migrations:/app/migrations:ro
+      - ./scripts:/app/scripts:ro
+      - ./dashboard/package.json:/app/dashboard/package.json:ro
+      - ./dashboard/prisma:/app/dashboard/prisma:ro
+    command:
+      - /bin/sh
+      - -c
+      - |
+        apt-get update -y && apt-get install -y openssl
+        npm install -g pnpm
+        cd /app
+        pnpm install
+        # Run migrations
+        pnpm run migrate-clickhouse
+        cd ./dashboard
+        pnpm install
+        pnpm prisma migrate deploy
+    depends_on:
+      clickhouse:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    networks:
+      - postgres_network
+      - clickhouse_network
+
+volumes:
+  clickhouse_prod_data:
+  clickhouse_prod_users:
+  postgres_prod_data:
+
+networks:
+  proxy_network:
+  postgres_network:
+  clickhouse_network:

@@ -1,0 +1,2 @@
+config.d/*.xml eol=lf
+setup/*.sh eol=lf
