@@ -1,27 +1,24 @@
 services:
-  # proxy:
-  #   build:
-  #     context: ./base/proxy
-  #     dockerfile: ./Dockerfile
-  #   container_name: proxy
-  #   hostname: proxy
-  #   volumes:
-  #     - ./base/static:/usr/share/nginx/html:ro
-  #     - /etc/letsencrypt:/etc/letsencrypt
-  #     - ./ssl/certbot:/var/www/certbot
-  #   restart: unless-stopped
-  #   depends_on:
-  #     init:
-  #       condition: service_completed_successfully
-  #     backend:
-  #       condition: service_started
-  #     dashboard:
-  #       condition: service_started
-  #   ports:
-  #     - 80:80
-  #     - 443:443
-  #   networks:
-  #     - proxy_network
+  proxy:
+    build:
+      context: ./base/proxy
+      dockerfile: ./Dockerfile
+    container_name: proxy
+    hostname: proxy
+    volumes:
+      - ./base/static:/usr/share/nginx/html:ro
+    restart: unless-stopped
+    depends_on:
+      init:
+        condition: service_completed_successfully
+      backend:
+        condition: service_started
+      dashboard:
+        condition: service_started
+    ports:
+      - 80:80
+    networks:
+      - proxy_network
 
   backend:
     image: ghcr.io/betterlytics/betterlytics-backend:main
@@ -91,7 +88,7 @@ services:
     volumes:
       - postgres_prod_data:/var/lib/postgresql/data/
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
       interval: 5s
       timeout: 2s
       retries: 10
