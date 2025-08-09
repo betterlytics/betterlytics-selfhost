@@ -3,17 +3,7 @@
   <logger>
     <level>notice</level>
     <console>true</console>
-
-    <log>/var/log/clickhouse-server/clickhouse-server.log</log>
-    <errorlog>/var/log/clickhouse-server/clickhouse-server.err.log</errorlog>
-    <size>500M</size>
-    <count>3</count>
   </logger>
-
-  <trace_log remove="remove" />
-  <text_log remove="remove" />
-  <metric_log remove="remove" />
-  <asynchronous_metric_log remove="remove" />
   
   <!-- Display setup -->
   <display_name>ch-1S_1K</display_name>
