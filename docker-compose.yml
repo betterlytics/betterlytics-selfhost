@@ -16,7 +16,7 @@ services:
       dashboard:
         condition: service_started
     ports:
-      - 80:80
+      - 5862:80
     networks:
       - proxy_network
 
