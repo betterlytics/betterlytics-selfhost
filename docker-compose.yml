@@ -21,7 +21,7 @@ services:
       - proxy_network
 
   backend:
-    image: ghcr.io/betterlytics/betterlytics-backend:main
+    image: ghcr.io/betterlytics/betterlytics-backend:v1.0.0
     container_name: backend
     hostname: backend
     env_file:
@@ -35,7 +35,7 @@ services:
       - clickhouse_network
 
   dashboard:
-    image: ghcr.io/betterlytics/betterlytics-dashboard:main
+    image: ghcr.io/betterlytics/betterlytics-dashboard:v1.0.0
     env_file:
       - .env
       - ./base/.env.base
@@ -97,7 +97,7 @@ services:
       - postgres_network
 
   init:
-    image: ghcr.io/betterlytics/betterlytics-initializer:main
+    image: ghcr.io/betterlytics/betterlytics-initializer:v1.0.0
     container_name: init
     hostname: init
     env_file:
