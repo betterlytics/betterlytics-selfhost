@@ -33,6 +33,7 @@ services:
     networks:
       - proxy_network
       - clickhouse_network
+      - postgres_network
 
   dashboard:
     image: ghcr.io/betterlytics/betterlytics-dashboard:v1.0.0
