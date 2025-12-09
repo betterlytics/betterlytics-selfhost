@@ -61,8 +61,8 @@ services:
       - .env
       - ./base/.env.base
     volumes:
-      - clickhouse_prod_data:/var/lib/clickhouse/
-      - clickhouse_prod_users:/etc/clickhouse-server/users.d/
+      - clickhouse_selfhost_data:/var/lib/clickhouse/
+      - clickhouse_selfhost_users:/etc/clickhouse-server/users.d/
       - ./base/clickhouse-config/config.d/config.xml:/etc/clickhouse-server/config.d/config.xml
       - ./base/clickhouse-config/setup/:/docker-entrypoint-initdb.d/
     ulimits:
@@ -87,7 +87,7 @@ services:
       - .env
       - ./base/.env.base
     volumes:
-      - postgres_prod_data:/var/lib/postgresql/data/
+      - postgres_selfhost_data:/var/lib/postgresql/data/
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
       interval: 5s
@@ -114,9 +114,9 @@ services:
       - clickhouse_network
 
 volumes:
-  clickhouse_prod_data:
-  clickhouse_prod_users:
-  postgres_prod_data:
+  clickhouse_selfhost_data:
+  clickhouse_selfhost_users:
+  postgres_selfhost_data:
 
 networks:
   proxy_network:
