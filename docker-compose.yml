@@ -7,8 +7,8 @@ services:
     hostname: proxy
     volumes:
       - ./base/static:/srv/static:ro
-      - caddy_data:/data
-      - caddy_config:/config
+      - caddy_selfhost_data:/data
+      - caddy_selfhost_config:/config
     environment:
       - ENABLE_HTTPS=${ENABLE_HTTPS:-false}
       - DOMAIN=${DOMAIN:-localhost}
@@ -125,8 +125,8 @@ volumes:
   clickhouse_selfhost_data:
   clickhouse_selfhost_users:
   postgres_selfhost_data:
-  caddy_data:
-  caddy_config:
+  caddy_selfhost_data:
+  caddy_selfhost_config:
 
 networks:
   proxy_network:
