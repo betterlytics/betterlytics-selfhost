@@ -3,8 +3,7 @@ services:
     build:
       context: ./base/proxy
       dockerfile: ./Dockerfile
-    container_name: proxy
-    hostname: proxy
+    container_name: betterlytics-proxy
     volumes:
       - ./base/static:/srv/static:ro
       - caddy_selfhost_data:/data
@@ -30,8 +29,7 @@ services:
 
   backend:
     image: ghcr.io/betterlytics/betterlytics-backend:v1.2.7
-    container_name: backend
-    hostname: backend
+    container_name: betterlytics-backend
     env_file:
       - .env
       - ./base/.env.base
@@ -49,8 +47,7 @@ services:
       - .env
       - ./base/.env.base
     restart: unless-stopped
-    container_name: dashboard
-    hostname: dashboard
+    container_name: betterlytics-dashboard
     depends_on:
       init:
         condition: service_completed_successfully
@@ -62,8 +59,7 @@ services:
   clickhouse:
     image: clickhouse/clickhouse-server:25.5.2.47
     user: 101:101
-    container_name: clickhouse
-    hostname: clickhouse
+    container_name: betterlytics-clickhouse
     restart: unless-stopped
     env_file:
       - .env
@@ -88,8 +84,7 @@ services:
 
   postgres:
     image: postgres:17.5
-    container_name: postgres
-    hostname: postgres
+    container_name: betterlytics-postgres
     restart: unless-stopped
     env_file:
       - .env
@@ -107,8 +102,7 @@ services:
 
   init:
     image: ghcr.io/betterlytics/betterlytics-initializer:v1.2.7
-    container_name: init
-    hostname: init
+    container_name: betterlytics-init
     env_file:
       - .env
       - ./base/.env.base
@@ -130,5 +124,8 @@ volumes:
 
 networks:
   proxy_network:
+    name: betterlytics_proxy_network
   postgres_network:
+    name: betterlytics_postgres_network
   clickhouse_network:
+    name: betterlytics_clickhouse_network
