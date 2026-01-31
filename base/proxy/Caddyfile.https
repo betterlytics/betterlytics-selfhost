@@ -10,6 +10,14 @@
 		reverse_proxy backend:3001
 	}
 
+	handle /track* {
+		reverse_proxy backend:3001 {
+			header_up X-Real-IP {remote_host}
+			header_up X-Forwarded-For {remote_host}
+			header_up X-Forwarded-Proto {scheme}
+		}
+	}
+
 	handle /event* {
 		reverse_proxy backend:3001 {
 			header_up X-Real-IP {remote_host}
