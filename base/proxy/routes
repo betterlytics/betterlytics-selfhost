@@ -1,0 +1,20 @@
+handle /analytics.js {
+	root * /srv/static
+	file_server
+}
+
+handle /health {
+	reverse_proxy backend:3001
+}
+
+handle /track* {
+	reverse_proxy backend:3001
+}
+
+handle /event* {
+	reverse_proxy backend:3001
+}
+
+handle {
+	reverse_proxy dashboard:3000
+}

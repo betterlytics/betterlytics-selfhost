@@ -69,8 +69,10 @@ fi
 # --- Derive values ---
 
 if [ "$ENABLE_HTTPS" = "true" ]; then
+    BIND_ADDRESS="0.0.0.0"
     PUBLIC_BASE_URL="https://${DOMAIN}"
 else
+    BIND_ADDRESS="127.0.0.1"
     if [ "$HTTP_PORT" = "80" ]; then
         PUBLIC_BASE_URL="http://${DOMAIN}"
     else
@@ -101,6 +103,7 @@ DOMAIN=${DOMAIN}
 ACME_EMAIL=${EMAIL}
 HTTP_PORT=${HTTP_PORT}
 HTTPS_PORT=${HTTPS_PORT}
+BIND_ADDRESS=${BIND_ADDRESS}
 
 # --- Database Passwords ---
 CLICKHOUSE_PASSWORD=${CLICKHOUSE_PASSWORD}

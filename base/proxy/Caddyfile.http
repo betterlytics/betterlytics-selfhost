@@ -1,40 +1,10 @@
 {
 	auto_https off
+	servers {
+		trusted_proxies static private_ranges
+	}
 }
 
 :{$PROXY_PORT:80} {
-	trusted_proxies static private_ranges
-
-	handle /analytics.js {
-		root * /srv/static
-		file_server
-	}
-
-	handle /health {
-		reverse_proxy backend:3001
-	}
-
-	handle /track* {
-		reverse_proxy backend:3001 {
-			header_up X-Real-IP {client_ip}
-			header_up X-Forwarded-For {client_ip}
-			header_up X-Forwarded-Proto {scheme}
-		}
-	}
-
-	handle /event* {
-		reverse_proxy backend:3001 {
-			header_up X-Real-IP {client_ip}
-			header_up X-Forwarded-For {client_ip}
-			header_up X-Forwarded-Proto {scheme}
-		}
-	}
-
-	handle {
-		reverse_proxy dashboard:3000 {
-			header_up X-Real-IP {client_ip}
-			header_up X-Forwarded-For {client_ip}
-			header_up X-Forwarded-Proto {scheme}
-		}
-	}
+	import /etc/caddy/routes
 }
