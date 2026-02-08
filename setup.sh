@@ -27,8 +27,8 @@ generate_secret() {
 printf "Domain name (e.g. analytics.example.com): "
 read -r DOMAIN
 
-printf "Email address (used for ACME/Let's Encrypt and admin account): "
-read -r EMAIL
+printf "Admin email: "
+read -r ADMIN_EMAIL
 
 printf "Admin password: "
 read -r ADMIN_PASSWORD
@@ -36,13 +36,13 @@ read -r ADMIN_PASSWORD
 printf "Enable automatic HTTPS via Let's Encrypt? (y/N): "
 read -r HTTPS_INPUT
 case "$HTTPS_INPUT" in
-    [yY]*) ENABLE_HTTPS=true ;;
-    *) ENABLE_HTTPS=false ;;
+    [yY]*) SSL_ENABLED=true ;;
+    *) SSL_ENABLED=false ;;
 esac
 
 HTTP_PORT=80
 HTTPS_PORT=443
-if [ "$ENABLE_HTTPS" = "false" ]; then
+if [ "$SSL_ENABLED" = "false" ]; then
     printf "HTTP port (default: 80): "
     read -r PORT_INPUT
     if [ -n "$PORT_INPUT" ]; then
@@ -68,7 +68,7 @@ fi
 
 # --- Derive values ---
 
-if [ "$ENABLE_HTTPS" = "true" ]; then
+if [ "$SSL_ENABLED" = "true" ]; then
     BIND_ADDRESS="0.0.0.0"
     PUBLIC_BASE_URL="https://${DOMAIN}"
 else
@@ -98,9 +98,9 @@ cat > "$ENV_FILE" <<EOF
 # ===========================================
 
 # --- Proxy / HTTPS ---
-ENABLE_HTTPS=${ENABLE_HTTPS}
+SSL_ENABLED=${SSL_ENABLED}
 DOMAIN=${DOMAIN}
-ACME_EMAIL=${EMAIL}
+SSL_DOMAIN=${DOMAIN}
 HTTP_PORT=${HTTP_PORT}
 HTTPS_PORT=${HTTPS_PORT}
 BIND_ADDRESS=${BIND_ADDRESS}
@@ -119,7 +119,7 @@ NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
 TOTP_SECRET_ENCRYPTION_KEY=${TOTP_SECRET_ENCRYPTION_KEY}
 
 # --- Admin Account ---
-ADMIN_EMAIL=${EMAIL}
+ADMIN_EMAIL=${ADMIN_EMAIL}
 ADMIN_PASSWORD=${ADMIN_PASSWORD}
 
 # --- General ---
@@ -131,12 +131,26 @@ MAXMIND_ACCOUNT_ID=${MAXMIND_ACCOUNT_ID}
 MAXMIND_LICENSE_KEY=${MAXMIND_LICENSE_KEY}
 EOF
 
+# --- Write docker-compose.override.yml ---
+
+OVERRIDE_FILE="docker-compose.override.yml"
+if [ "$SSL_ENABLED" = "true" ]; then
+    cat > "$OVERRIDE_FILE" <<EOF
+services:
+  betterlytics-selfhost:
+    ports:
+      - "${BIND_ADDRESS}:${HTTPS_PORT}:443"
+EOF
+else
+    rm -f "$OVERRIDE_FILE"
+fi
+
 echo ""
 echo "Configuration written to ${ENV_FILE}"
 echo ""
 echo "Public URL: ${PUBLIC_BASE_URL}"
-echo "HTTPS:      ${ENABLE_HTTPS}"
+echo "HTTPS:      ${SSL_ENABLED}"
 echo ""
 echo "Next steps:"
 echo "  docker compose up -d"
-echo "  curl ${PUBLIC_BASE_URL}/health"
+echo ""

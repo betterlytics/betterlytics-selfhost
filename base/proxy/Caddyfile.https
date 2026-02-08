@@ -1,4 +1,0 @@
-{$DOMAIN} {
-	tls {$ACME_EMAIL}
-	import /etc/caddy/routes
-}

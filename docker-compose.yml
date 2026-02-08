@@ -1,59 +1,19 @@
 services:
-  proxy:
-    build:
-      context: ./base/proxy
-      dockerfile: ./Dockerfile
-    container_name: betterlytics-proxy
-    volumes:
-      - ./base/static:/srv/static:ro
-      - caddy_selfhost_data:/data
-      - caddy_selfhost_config:/config
-    environment:
-      - ENABLE_HTTPS=${ENABLE_HTTPS:-false}
-      - DOMAIN=${DOMAIN:-localhost}
-      - ACME_EMAIL=${ACME_EMAIL:-}
-      - PROXY_PORT=${HTTP_PORT:-80}
+  betterlytics-selfhost:
+    image: ghcr.io/betterlytics/betterlytics-selfhost:v1.2.7
+    env_file:
+      - .env
+      - ./base/.env.base
     restart: unless-stopped
-    depends_on:
-      init:
-        condition: service_completed_successfully
-      backend:
-        condition: service_started
-      dashboard:
-        condition: service_started
+    container_name: betterlytics-selfhost
     ports:
-      - "${BIND_ADDRESS:-0.0.0.0}:${HTTP_PORT:-80}:80"
-      - "${BIND_ADDRESS:-0.0.0.0}:${HTTPS_PORT:-443}:443"
-    networks:
-      - proxy_network
-
-  backend:
-    image: ghcr.io/betterlytics/betterlytics-backend:v1.2.7
-    container_name: betterlytics-backend
-    env_file:
-      - .env
-      - ./base/.env.base
+      - "${BIND_ADDRESS}:${HTTP_PORT}:80"
+    volumes:
+      - betterlytics_selfhost_postgres_data:/var/lib/postgresql/data
     depends_on:
-      init:
-        condition: service_completed_successfully
+      clickhouse:
+        condition: service_healthy
     networks:
-      - proxy_network
-      - clickhouse_network
-      - postgres_network
-
-  dashboard:
-    image: ghcr.io/betterlytics/betterlytics-dashboard:v1.2.7
-    env_file:
-      - .env
-      - ./base/.env.base
-    restart: unless-stopped
-    container_name: betterlytics-dashboard
-    depends_on:
-      init:
-        condition: service_completed_successfully
-    networks:
-      - proxy_network
-      - postgres_network
       - clickhouse_network
 
   clickhouse:
@@ -65,8 +25,8 @@ services:
       - .env
       - ./base/.env.base
     volumes:
-      - clickhouse_selfhost_data:/var/lib/clickhouse/
-      - clickhouse_selfhost_users:/etc/clickhouse-server/users.d/
+      - betterlytics_selfhost_clickhouse_data:/var/lib/clickhouse/
+      - betterlytics_selfhost_clickhouse_users:/etc/clickhouse-server/users.d/
       - ./base/clickhouse-config/config.d/config.xml:/etc/clickhouse-server/config.d/config.xml
       - ./base/clickhouse-config/setup/:/docker-entrypoint-initdb.d/
     ulimits:
@@ -82,50 +42,11 @@ services:
     networks:
       - clickhouse_network
 
-  postgres:
-    image: postgres:17.5
-    container_name: betterlytics-postgres
-    restart: unless-stopped
-    env_file:
-      - .env
-      - ./base/.env.base
-    volumes:
-      - postgres_selfhost_data:/var/lib/postgresql/data/
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
-      interval: 5s
-      timeout: 2s
-      retries: 10
-      start_period: 10s
-    networks:
-      - postgres_network
-
-  init:
-    image: ghcr.io/betterlytics/betterlytics-initializer:v1.2.7
-    container_name: betterlytics-init
-    env_file:
-      - .env
-      - ./base/.env.base
-    depends_on:
-      clickhouse:
-        condition: service_healthy
-      postgres:
-        condition: service_healthy
-    networks:
-      - postgres_network
-      - clickhouse_network
-
 volumes:
-  clickhouse_selfhost_data:
-  clickhouse_selfhost_users:
-  postgres_selfhost_data:
-  caddy_selfhost_data:
-  caddy_selfhost_config:
+  betterlytics_selfhost_postgres_data:
+  betterlytics_selfhost_clickhouse_data:
+  betterlytics_selfhost_clickhouse_users:
 
 networks:
-  proxy_network:
-    name: betterlytics_proxy_network
-  postgres_network:
-    name: betterlytics_postgres_network
   clickhouse_network:
     name: betterlytics_clickhouse_network
