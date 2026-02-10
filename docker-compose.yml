@@ -1,3 +1,9 @@
+x-logging: &default-logging
+  driver: "local"
+  options:
+    max-size: "10m"
+    max-file: "5"
+
 services:
   betterlytics-selfhost:
     image: ghcr.io/betterlytics/betterlytics-selfhost:v1.2.7
@@ -15,6 +21,7 @@ services:
         condition: service_healthy
     networks:
       - clickhouse_network
+    logging: *default-logging
 
   clickhouse:
     image: clickhouse/clickhouse-server:25.5.2.47
@@ -41,6 +48,7 @@ services:
       start_period: 10s
     networks:
       - clickhouse_network
+    logging: *default-logging
 
 volumes:
   betterlytics_selfhost_postgres_data:
