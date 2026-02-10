@@ -24,7 +24,7 @@ services:
     logging: *default-logging
 
   clickhouse:
-    image: clickhouse/clickhouse-server:25.5.2.47
+    image: clickhouse/clickhouse-server:25.8
     user: 101:101
     container_name: betterlytics-clickhouse
     restart: unless-stopped
