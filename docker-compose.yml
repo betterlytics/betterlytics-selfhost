@@ -28,6 +28,7 @@ services:
     user: 101:101
     container_name: betterlytics-clickhouse
     restart: unless-stopped
+    entrypoint: /entrypoint-wrapper.sh
     env_file:
       - .env
       - ./base/.env.base
@@ -35,6 +36,7 @@ services:
       - betterlytics_selfhost_clickhouse_data:/var/lib/clickhouse/
       - betterlytics_selfhost_clickhouse_users:/etc/clickhouse-server/users.d/
       - ./base/clickhouse-config/config.d/config.xml:/etc/clickhouse-server/config.d/config.xml
+      - ./base/clickhouse-config/entrypoint-wrapper.sh:/entrypoint-wrapper.sh
       - ./base/clickhouse-config/setup/:/docker-entrypoint-initdb.d/
     ulimits:
       nofile:

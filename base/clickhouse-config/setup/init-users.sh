@@ -14,7 +14,6 @@ if [ -n "$SECRET_BASE" ]; then
 
     export CLICKHOUSE_BACKEND_PASSWORD=$(derive_secret "clickhouse-backend" 32)
     export CLICKHOUSE_DASHBOARD_PASSWORD=$(derive_secret "clickhouse-dashboard" 32)
-    export CLICKHOUSE_ADMIN_PASSWORD=$(derive_secret "clickhouse-admin" 32)
 fi
 
 # Create a user for backend ingress
@@ -34,6 +33,3 @@ clickhouse-client --query="GRANT SELECT ON analytics.* TO dashboard_role;"
 # Assign roles to users
 clickhouse-client --query="GRANT backend_role TO ${CLICKHOUSE_BACKEND_USER};"
 clickhouse-client --query="GRANT dashboard_role TO ${CLICKHOUSE_DASHBOARD_USER};"
-
-# Set admin password
-clickhouse-client --query="ALTER USER ${CLICKHOUSE_USER:-admin} IDENTIFIED BY '${CLICKHOUSE_ADMIN_PASSWORD}';"
