@@ -28,7 +28,11 @@ services:
     user: 101:101
     container_name: betterlytics-clickhouse
     restart: unless-stopped
-    entrypoint: /entrypoint-wrapper.sh
+    entrypoint: >
+      /bin/sh -c "
+        chmod +x /entrypoint-wrapper.sh 2>/dev/null || true;
+        exec /entrypoint-wrapper.sh
+      "
     env_file:
       - .env
       - ./base/.env.base
