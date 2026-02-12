@@ -19,8 +19,7 @@ services:
       - ./base/supervisord.conf:/etc/supervisor/conf.d/betterlytics.conf:ro
       - ./base/entrypoint.sh:/entrypoint.sh
       - betterlytics_selfhost_postgres_data:/var/lib/postgresql/data
-      - betterlytics_selfhost_letsencrypt_certs:/etc/letsencrypt
-      - betterlytics_selfhost_letsencrypt_lib:/var/lib/letsencrypt
+      - betterlytics_selfhost_letsencrypt_certs:/etc/letsencrypt/live
     entrypoint: ["/bin/sh", "/entrypoint.sh"]
     depends_on:
       clickhouse:
@@ -63,7 +62,6 @@ volumes:
   betterlytics_selfhost_clickhouse_data:
   betterlytics_selfhost_clickhouse_users:
   betterlytics_selfhost_letsencrypt_certs:
-  betterlytics_selfhost_letsencrypt_lib:
 
 networks:
   clickhouse_network:
