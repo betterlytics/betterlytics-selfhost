@@ -36,13 +36,13 @@ read -r ADMIN_PASSWORD
 printf "Enable automatic HTTPS via Let's Encrypt? (y/N): "
 read -r HTTPS_INPUT
 case "$HTTPS_INPUT" in
-    [yY]*) SSL_ENABLED=true ;;
-    *) SSL_ENABLED=false ;;
+    [yY]*) HTTP_SCHEME=https ;;
+    *) HTTP_SCHEME=http ;;
 esac
 
 HTTP_PORT=80
 HTTPS_PORT=443
-if [ "$SSL_ENABLED" = "false" ]; then
+if [ "$HTTP_SCHEME" = "http" ]; then
     printf "HTTP port (default: 80): "
     read -r PORT_INPUT
     if [ -n "$PORT_INPUT" ]; then
@@ -68,16 +68,10 @@ fi
 
 # --- Derive values ---
 
-if [ "$SSL_ENABLED" = "true" ]; then
+if [ "$HTTP_SCHEME" = "https" ]; then
     BIND_ADDRESS="0.0.0.0"
-    PUBLIC_BASE_URL="https://${DOMAIN}"
 else
     BIND_ADDRESS="127.0.0.1"
-    if [ "$HTTP_PORT" = "80" ]; then
-        PUBLIC_BASE_URL="http://${DOMAIN}"
-    else
-        PUBLIC_BASE_URL="http://${DOMAIN}:${HTTP_PORT}"
-    fi
 fi
 
 # --- Generate secret base ---
@@ -105,11 +99,11 @@ ENABLE_GEOLOCATION=${ENABLE_GEOLOCATION}
 MAXMIND_ACCOUNT_ID=${MAXMIND_ACCOUNT_ID}
 MAXMIND_LICENSE_KEY=${MAXMIND_LICENSE_KEY}
 
-# --- Public URL ---
-PUBLIC_BASE_URL=${PUBLIC_BASE_URL}
+# --- Domain ---
+DOMAIN=${DOMAIN}
 
 # --- Proxy / HTTPS ---
-SSL_ENABLED=${SSL_ENABLED}
+HTTP_SCHEME=${HTTP_SCHEME}
 HTTP_PORT=${HTTP_PORT}
 HTTPS_PORT=${HTTPS_PORT}
 BIND_ADDRESS=${BIND_ADDRESS}
@@ -122,7 +116,7 @@ EOF
 # --- Write docker-compose.override.yml ---
 
 OVERRIDE_FILE="docker-compose.override.yml"
-if [ "$SSL_ENABLED" = "true" ]; then
+if [ "$HTTP_SCHEME" = "https" ]; then
     cat > "$OVERRIDE_FILE" <<EOF
 services:
   betterlytics-selfhost:
@@ -136,8 +130,8 @@ fi
 echo ""
 echo "Configuration written to ${ENV_FILE}"
 echo ""
-echo "Public URL: ${PUBLIC_BASE_URL}"
-echo "HTTPS:      ${SSL_ENABLED}"
+echo "Domain:     ${DOMAIN}"
+echo "HTTPS:      ${HTTP_SCHEME}"
 echo ""
 echo "Next steps:"
 echo "  docker compose up -d"
