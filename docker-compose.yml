@@ -15,9 +15,13 @@ services:
     ports:
       - "${BIND_ADDRESS:-0.0.0.0}:${HTTP_PORT:-80}:80"
     volumes:
+      - ./base/proxy:/etc/nginx/templates:ro
+      - ./base/supervisord.conf:/etc/supervisor/conf.d/betterlytics.conf:ro
+      - ./base/entrypoint.sh:/entrypoint.sh
       - betterlytics_selfhost_postgres_data:/var/lib/postgresql/data
       - betterlytics_selfhost_letsencrypt_certs:/etc/letsencrypt
       - betterlytics_selfhost_letsencrypt_lib:/var/lib/letsencrypt
+    entrypoint: ["/bin/sh", "/entrypoint.sh"]
     depends_on:
       clickhouse:
         condition: service_healthy
