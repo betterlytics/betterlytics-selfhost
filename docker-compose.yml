@@ -16,6 +16,8 @@ services:
       - "${BIND_ADDRESS:-0.0.0.0}:${HTTP_PORT:-80}:80"
     volumes:
       - betterlytics_selfhost_postgres_data:/var/lib/postgresql/data
+      - betterlytics_selfhost_letsencrypt_certs:/etc/letsencrypt
+      - betterlytics_selfhost_letsencrypt_lib:/var/lib/letsencrypt
     depends_on:
       clickhouse:
         condition: service_healthy
@@ -56,7 +58,8 @@ volumes:
   betterlytics_selfhost_postgres_data:
   betterlytics_selfhost_clickhouse_data:
   betterlytics_selfhost_clickhouse_users:
-  betterlytics_selfhost_ssl_certs:
+  betterlytics_selfhost_letsencrypt_certs:
+  betterlytics_selfhost_letsencrypt_lib:
 
 networks:
   clickhouse_network:
