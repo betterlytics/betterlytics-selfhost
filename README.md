@@ -36,7 +36,7 @@ Ports 80 and 443 must be accessible from the internet for ACME challenges and HT
 | -------------------------- | -------------------------------------------------------- | ------- |
 | `DOMAIN`                   | Domain where your instance is accessible (no protocol)   |         |
 | `ENABLE_UPTIME_MONITORING` | Enable Uptime Monitoring feature                         | `false` |
-| `HTTP_SCHEME`              | `http` or `https` — built-in Let's Encrypt when `https` | `https` |
+| `HTTP_SCHEME`              | `http` or `https` — built-in Let's Encrypt when `https`  | `https` |
 | `SECRET_BASE`              | Single secret used to derive all passwords and auth keys |         |
 | `ADMIN_EMAIL`              | Admin account email                                      |         |
 | `ADMIN_PASSWORD`           | Admin account password                                   |         |
@@ -50,19 +50,19 @@ All database passwords, `NEXTAUTH_SECRET`, and `TOTP_SECRET_ENCRYPTION_KEY` are 
 
 ### Behind a Reverse Proxy
 
-Set `HTTP_SCHEME=http`. The container listens on HTTP only, bound to `127.0.0.1`.
-
-Since most servers already have port 80 in use, set `HTTP_PORT` to an available port in your `.env`:
+Set `HTTP_SCHEME=http` and bind to localhost on a non-standard port so you don't expose port 80 directly:
 
 ```
-HTTP_PORT=8000
+HTTP_SCHEME=http
+BIND_ADDRESS=127.0.0.1
+HTTP_PORT=5566
 ```
 
 Then point your reverse proxy to that port. Example with **Caddy**:
 
 ```
 analytics.example.com {
-    reverse_proxy 127.0.0.1:8000
+    reverse_proxy 127.0.0.1:5566
 }
 ```
 
@@ -77,7 +77,7 @@ server {
     ssl_certificate_key /etc/letsencrypt/live/analytics.example.com/privkey.pem;
 
     location / {
-        proxy_pass http://127.0.0.1:8000;
+        proxy_pass http://127.0.0.1:5566;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
