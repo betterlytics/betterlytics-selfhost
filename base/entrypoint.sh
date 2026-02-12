@@ -58,6 +58,7 @@ node scripts/post_migrate_siteconfig_ro.js
 node scripts/post_migrate_monitoring_ro.js
 
 if [ "$HTTP_SCHEME" = "https" ] && [ -n "$SSL_DOMAIN" ]; then
+    mkdir -p /var/www/certbot
     if [ ! -f "/etc/letsencrypt/live/$SSL_DOMAIN/fullchain.pem" ]; then
         echo "Obtaining SSL certificate for $SSL_DOMAIN..."
         cp /etc/nginx/templates/nginx.conf /etc/nginx/conf.d/default.conf
