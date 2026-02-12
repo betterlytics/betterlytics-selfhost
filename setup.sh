@@ -33,11 +33,11 @@ read -r ADMIN_EMAIL
 printf "Admin password: "
 read -r ADMIN_PASSWORD
 
-printf "Enable automatic HTTPS via Let's Encrypt? (y/N): "
+printf "Enable automatic HTTPS via Let's Encrypt? (Y/n): "
 read -r HTTPS_INPUT
 case "$HTTPS_INPUT" in
-    [yY]*) HTTP_SCHEME=https ;;
-    *) HTTP_SCHEME=http ;;
+    [nN]*) HTTP_SCHEME=http ;;
+    *) HTTP_SCHEME=https ;;
 esac
 
 HTTP_PORT=80

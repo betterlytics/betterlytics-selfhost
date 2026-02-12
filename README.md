@@ -26,7 +26,7 @@ docker compose up -d
 
 ### Standalone (automatic HTTPS)
 
-Set `HTTP_SCHEME=https` in your `.env` file. The container will automatically provision TLS certificates via Let's Encrypt.
+`HTTP_SCHEME=https` is the default. The container will automatically provision TLS certificates via Let's Encrypt.
 
 Ports 80 and 443 must be accessible from the internet for ACME challenges and HTTPS traffic. When using `setup.sh`, this is handled automatically — the script generates a `docker-compose.override.yml` that exposes port 443 and binds to `0.0.0.0`.
 
@@ -36,7 +36,7 @@ Ports 80 and 443 must be accessible from the internet for ACME challenges and HT
 | -------------------------- | -------------------------------------------------------- | ------- |
 | `DOMAIN`                   | Domain where your instance is accessible (no protocol)   |         |
 | `ENABLE_UPTIME_MONITORING` | Enable Uptime Monitoring feature                         | `false` |
-| `HTTP_SCHEME`              | `http` or `https` — set to `https` for built-in Let's Encrypt | `http` |
+| `HTTP_SCHEME`              | `http` or `https` — built-in Let's Encrypt when `https` | `https` |
 | `SECRET_BASE`              | Single secret used to derive all passwords and auth keys |         |
 | `ADMIN_EMAIL`              | Admin account email                                      |         |
 | `ADMIN_PASSWORD`           | Admin account password                                   |         |
@@ -50,7 +50,7 @@ All database passwords, `NEXTAUTH_SECRET`, and `TOTP_SECRET_ENCRYPTION_KEY` are 
 
 ### Behind a Reverse Proxy
 
-Leave `HTTP_SCHEME=http` (the default). The container listens on HTTP only, bound to `127.0.0.1`.
+Set `HTTP_SCHEME=http`. The container listens on HTTP only, bound to `127.0.0.1`.
 
 Since most servers already have port 80 in use, set `HTTP_PORT` to an available port in your `.env`:
 
