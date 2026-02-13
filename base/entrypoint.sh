@@ -65,6 +65,7 @@ if [ "$HTTP_SCHEME" = "https" ] && [ -n "$SSL_DOMAIN" ]; then
             $CERTBOT_EMAIL_FLAG \
             -d "$SSL_DOMAIN" \
             -w /var/www/certbot
+            --staging
         nginx -s stop
     fi
 
