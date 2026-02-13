@@ -1,21 +1,6 @@
 #!/bin/bash
 set -e
 
-# Derive ClickHouse passwords from SECRET_BASE (matches selfhost entrypoint derivation)
-if [ -n "$SECRET_BASE" ]; then
-    derive_secret() {
-        _result="" _i=0
-        while [ ${#_result} -lt "$2" ]; do
-            _chunk=$(printf '%s:%d' "$1" "$_i" | openssl dgst -sha256 -hmac "$SECRET_BASE" -binary | openssl base64 -A | tr '+/' '-_' | tr -d '=')
-            _result="${_result}${_chunk}" _i=$((_i + 1))
-        done
-        printf '%s' "$_result" | head -c "$2"
-    }
-
-    export CLICKHOUSE_BACKEND_PASSWORD=$(derive_secret "clickhouse-backend" 32)
-    export CLICKHOUSE_DASHBOARD_PASSWORD=$(derive_secret "clickhouse-dashboard" 32)
-fi
-
 # Create a user for backend ingress
 clickhouse-client --query="CREATE USER IF NOT EXISTS ${CLICKHOUSE_BACKEND_USER} IDENTIFIED BY '${CLICKHOUSE_BACKEND_PASSWORD}';"
 

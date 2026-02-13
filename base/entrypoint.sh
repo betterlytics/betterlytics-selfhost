@@ -4,14 +4,7 @@ set -e
 export PATH="/app/initializer/node_modules/.bin:$PATH"
 
 if [ -n "$SECRET_BASE" ]; then
-    derive_secret() {
-        _result="" _i=0
-        while [ ${#_result} -lt "$2" ]; do
-            _chunk=$(printf '%s:%d' "$1" "$_i" | openssl dgst -sha256 -hmac "$SECRET_BASE" -binary | openssl base64 -A | tr '+/' '-_' | tr -d '=')
-            _result="${_result}${_chunk}" _i=$((_i + 1))
-        done
-        printf '%s' "$_result" | head -c "$2"
-    }
+    . /derive.sh
 
     export CLICKHOUSE_PASSWORD=$(derive_secret "clickhouse-admin" 32)
     export CLICKHOUSE_BACKEND_PASSWORD=$(derive_secret "clickhouse-backend" 32)
