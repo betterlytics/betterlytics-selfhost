@@ -3,7 +3,6 @@ set -e
 
 # -----------------------------------------------
 # Betterlytics Self-Hosted Setup Script
-# Generates a .env file with secure random secrets
 # -----------------------------------------------
 
 ENV_FILE=".env"

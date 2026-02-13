@@ -1,6 +1,4 @@
 #!/bin/bash
-# Derive the admin password from SECRET_BASE before the ClickHouse entrypoint runs.
-# The entrypoint uses CLICKHOUSE_PASSWORD to set the admin user's password in XML config.
 if [ -n "$SECRET_BASE" ]; then
     . /derive.sh
 
