@@ -20,7 +20,7 @@ services:
       - ./base/derive.sh:/derive.sh:ro
       - ./base/entrypoint.sh:/entrypoint.sh
       - betterlytics_selfhost_postgres_data:/var/lib/postgresql/data
-      - betterlytics_selfhost_letsencrypt_certs:/etc/letsencrypt/live
+      - betterlytics_selfhost_letsencrypt_certs:/etc/letsencrypt
     entrypoint: ["/bin/sh", "/entrypoint.sh"]
     depends_on:
       clickhouse:
