@@ -69,6 +69,8 @@ if [ "$HTTP_SCHEME" = "https" ] && [ -n "$SSL_DOMAIN" ]; then
     fi
 
     echo "Configuring nginx with SSL..."
+    certbot renew
+    
     export SSL_DOMAIN
     envsubst '${SSL_DOMAIN}' < /etc/nginx/templates/nginx-ssl.conf > /etc/nginx/conf.d/default.conf
 else
