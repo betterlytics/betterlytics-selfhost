@@ -61,11 +61,14 @@ if [ "$HTTP_SCHEME" = "https" ] && [ -n "$SSL_DOMAIN" ]; then
         else
             CERTBOT_EMAIL_FLAG="--register-unsafely-without-email"
         fi
-        certbot certonly --webroot --non-interactive --agree-tos \
+        if ! certbot certonly --webroot --non-interactive --agree-tos \
             $CERTBOT_EMAIL_FLAG \
             -d "$SSL_DOMAIN" \
-            -w /var/www/certbot
-            --staging
+            -w /var/www/certbot; then
+            nginx -s stop
+            echo "Failed to obtain certificate"
+            exit 0
+        fi
         nginx -s stop
     fi
 
