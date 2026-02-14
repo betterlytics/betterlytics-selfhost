@@ -42,7 +42,8 @@ esac
 HTTP_PORT=80
 HTTPS_PORT=443
 if [ "$HTTP_SCHEME" = "http" ]; then
-    printf "HTTP port (default: 80): "
+    HTTP_PORT=5566
+    printf "HTTP port (default: 5566): "
     read -r PORT_INPUT
     if [ -n "$PORT_INPUT" ]; then
         HTTP_PORT=$PORT_INPUT
