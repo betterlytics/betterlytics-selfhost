@@ -21,22 +21,78 @@ generate_secret() {
     tr -dc 'A-Za-z0-9' < /dev/urandom | head -c "$LENGTH"
 }
 
+# --- Validation helpers ---
+
+validate_not_empty() {
+    if [ -z "$1" ]; then
+        echo "Error: $2 cannot be empty."
+        exit 1
+    fi
+}
+
+validate_domain() {
+    case "$1" in
+        http://*|https://*)
+            echo "Error: Domain should not include the protocol (http:// or https://)."
+            exit 1
+            ;;
+    esac
+    case "$1" in
+        */)
+            echo "Error: Domain should not have a trailing slash."
+            exit 1
+            ;;
+    esac
+}
+
+validate_email() {
+    case "$1" in
+        *@*.*)
+            ;;
+        *)
+            echo "Error: Invalid email address."
+            exit 1
+            ;;
+    esac
+}
+
+validate_port() {
+    case "$1" in
+        ''|*[!0-9]*)
+            echo "Error: Port must be a number."
+            exit 1
+            ;;
+    esac
+    if [ "$1" -lt 1 ] || [ "$1" -gt 65535 ]; then
+        echo "Error: Port must be between 1 and 65535."
+        exit 1
+    fi
+}
+
 # --- Prompts ---
 
 printf "Domain name (e.g. analytics.example.com): "
 read -r DOMAIN
+validate_not_empty "$DOMAIN" "Domain"
+validate_domain "$DOMAIN"
 
 printf "Admin email: "
 read -r ADMIN_EMAIL
+validate_not_empty "$ADMIN_EMAIL" "Admin email"
+validate_email "$ADMIN_EMAIL"
 
 printf "Admin password: "
+stty -echo
 read -r ADMIN_PASSWORD
+stty echo
+echo
+validate_not_empty "$ADMIN_PASSWORD" "Admin password"
 
-printf "Enable automatic HTTPS via Let's Encrypt? (Y/n): "
+printf "Enable automatic HTTPS via Let's Encrypt? (y/N): "
 read -r HTTPS_INPUT
 case "$HTTPS_INPUT" in
-    [nN]*) HTTP_SCHEME=http ;;
-    *) HTTP_SCHEME=https ;;
+    [yY]*) HTTP_SCHEME=https ;;
+    *) HTTP_SCHEME=http ;;
 esac
 
 HTTP_PORT=80
@@ -46,6 +102,7 @@ if [ "$HTTP_SCHEME" = "http" ]; then
     printf "HTTP port (default: 5566): "
     read -r PORT_INPUT
     if [ -n "$PORT_INPUT" ]; then
+        validate_port "$PORT_INPUT"
         HTTP_PORT=$PORT_INPUT
     fi
 fi
@@ -62,8 +119,11 @@ MAXMIND_LICENSE_KEY="xxxxx"
 if [ "$ENABLE_GEOLOCATION" = "true" ]; then
     printf "MaxMind Account ID: "
     read -r MAXMIND_ACCOUNT_ID
+    validate_not_empty "$MAXMIND_ACCOUNT_ID" "MaxMind Account ID"
+
     printf "MaxMind License Key: "
     read -r MAXMIND_LICENSE_KEY
+    validate_not_empty "$MAXMIND_LICENSE_KEY" "MaxMind License Key"
 fi
 
 # --- Derive values ---
@@ -87,29 +147,29 @@ cat > "$ENV_FILE" <<EOF
 # ===========================================
 
 # --- Admin Account ---
-ADMIN_EMAIL=${ADMIN_EMAIL}
-ADMIN_PASSWORD=${ADMIN_PASSWORD}
+ADMIN_EMAIL="${ADMIN_EMAIL}"
+ADMIN_PASSWORD="${ADMIN_PASSWORD}"
 
 # --- General ---
-DEFAULT_LANGUAGE=en
-ENABLE_UPTIME_MONITORING=false
+DEFAULT_LANGUAGE="en"
+ENABLE_UPTIME_MONITORING="false"
 
 # --- Geolocation ---
-ENABLE_GEOLOCATION=${ENABLE_GEOLOCATION}
-MAXMIND_ACCOUNT_ID=${MAXMIND_ACCOUNT_ID}
-MAXMIND_LICENSE_KEY=${MAXMIND_LICENSE_KEY}
+ENABLE_GEOLOCATION="${ENABLE_GEOLOCATION}"
+MAXMIND_ACCOUNT_ID="${MAXMIND_ACCOUNT_ID}"
+MAXMIND_LICENSE_KEY="${MAXMIND_LICENSE_KEY}"
 
 # --- Domain ---
-DOMAIN=${DOMAIN}
+DOMAIN="${DOMAIN}"
 
 # --- Proxy / HTTPS ---
-HTTP_SCHEME=${HTTP_SCHEME}
-HTTP_PORT=${HTTP_PORT}
-HTTPS_PORT=${HTTPS_PORT}
-BIND_ADDRESS=${BIND_ADDRESS}
+HTTP_SCHEME="${HTTP_SCHEME}"
+HTTP_PORT="${HTTP_PORT}"
+HTTPS_PORT="${HTTPS_PORT}"
+BIND_ADDRESS="${BIND_ADDRESS}"
 
 # --- Secret Base ---
-SECRET_BASE=${SECRET_BASE}
+SECRET_BASE="${SECRET_BASE}"
 
 EOF
 

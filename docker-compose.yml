@@ -18,10 +18,16 @@ services:
       - ./base/proxy:/etc/nginx/templates:ro
       - ./base/supervisord.conf:/etc/supervisor/conf.d/betterlytics.conf:ro
       - ./base/derive.sh:/derive.sh:ro
-      - ./base/entrypoint.sh:/entrypoint.sh
+      - ./base/entrypoint.sh:/entrypoint.sh:ro
       - betterlytics_selfhost_postgres_data:/var/lib/postgresql/data
       - betterlytics_selfhost_letsencrypt_certs:/etc/letsencrypt
     entrypoint: ["/bin/sh", "/entrypoint.sh"]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
     depends_on:
       clickhouse:
         condition: service_healthy
@@ -39,9 +45,9 @@ services:
       - .env
       - ./base/.env.base
     volumes:
-      - ./base/clickhouse-config/config.d/config.xml:/etc/clickhouse-server/config.d/config.xml
-      - ./base/clickhouse-config/entrypoint-wrapper.sh:/entrypoint-wrapper.sh
-      - ./base/clickhouse-config/setup/:/docker-entrypoint-initdb.d/
+      - ./base/clickhouse-config/config.d/config.xml:/etc/clickhouse-server/config.d/config.xml:ro
+      - ./base/clickhouse-config/entrypoint-wrapper.sh:/entrypoint-wrapper.sh:ro
+      - ./base/clickhouse-config/setup/:/docker-entrypoint-initdb.d/:ro
       - ./base/derive.sh:/derive.sh:ro
       - betterlytics_selfhost_clickhouse_data:/var/lib/clickhouse/
       - betterlytics_selfhost_clickhouse_users:/etc/clickhouse-server/users.d/
