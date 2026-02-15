@@ -260,12 +260,12 @@ else
 fi
 
 # =============================================
-#  Step 3: Admin Account
+#  Step 3: Dashboard Admin Account
 # =============================================
 
 echo ""
 echo "-------------------------------------------"
-echo "  Admin Account"
+echo "  Dashboard Admin Account"
 echo "-------------------------------------------"
 echo ""
 
