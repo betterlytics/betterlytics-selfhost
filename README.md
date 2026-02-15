@@ -41,6 +41,13 @@ Ports 80 and 443 must be accessible from the internet for ACME challenges and HT
 | `ADMIN_EMAIL`              | Admin account email                                      |         |
 | `ADMIN_PASSWORD`           | Admin account password                                   |         |
 | `DEFAULT_LANGUAGE`         | Default UI language                                      | `en`    |
+| `ENABLE_EMAILS`            | Enable sending emails                                    | `false` |
+| `MAILER_SEND_API_TOKEN`    | MailerSend API token (no SMTP config needed if set)      |         |
+| `SMTP_HOST`                | SMTP server hostname                                     |         |
+| `SMTP_PORT`                | SMTP server port                                         |         |
+| `SMTP_USER`                | SMTP username                                            |         |
+| `SMTP_PASSWORD`            | SMTP password                                            |         |
+| `SMTP_FROM`                | Sender email address for outgoing mail                   |         |
 | `ENABLE_GEOLOCATION`       | Enable IP geolocation (requires MaxMind)                 | `false` |
 | `MAXMIND_ACCOUNT_ID`       | MaxMind account ID                                       |         |
 | `MAXMIND_LICENSE_KEY`      | MaxMind license key                                      |         |
