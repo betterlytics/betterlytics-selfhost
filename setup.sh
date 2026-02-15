@@ -169,8 +169,7 @@ menu_select() {
 
 if [ -f "$ENV_FILE" ]; then
     echo ""
-    echo "  A .env file already exists."
-    echo "  (Use ▲/▼ arrow keys, then press Enter)"
+    echo "  A .env file already exists. (Use ▲/▼ to select, Enter to confirm)"
     echo ""
 
     menu_select \
@@ -198,8 +197,7 @@ echo ""
 #  Step 1: Deployment Mode
 # =============================================
 
-echo "  Choose a deployment mode:"
-echo "  (Use ▲/▼ arrow keys, then press Enter)"
+echo "  Choose a deployment mode: (Use ▲/▼ to select, Enter to confirm)"
 echo ""
 
 menu_select \
