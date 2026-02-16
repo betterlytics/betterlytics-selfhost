@@ -14,29 +14,8 @@ if [ -n "$SECRET_BASE" ]; then
     export NEXTAUTH_SECRET=$(derive_secret "nextauth" 64)
     export TOTP_SECRET_ENCRYPTION_KEY=$(derive_secret "totp-encryption" 32)
 
-    export POSTGRES_URL="postgresql://user:${POSTGRES_PASSWORD}@localhost:5432/dashboard?schema=public"
-    export SITE_CONFIG_DATABASE_URL="postgresql://siteconfig_ro:${POSTGRES_SITECONFIG_RO_PASSWORD}@localhost:5432/dashboard"
-fi
-
-PG_DATA="/var/lib/postgresql/data"
-PG_BIN="/usr/lib/postgresql/17/bin"
-
-if [ ! -s "$PG_DATA/PG_VERSION" ]; then
-    echo "Initializing PostgreSQL..."
-    mkdir -p "$PG_DATA"
-    chown postgres:postgres "$PG_DATA"
-    su - postgres -c "$PG_BIN/initdb -D $PG_DATA"
-    echo "host all all 0.0.0.0/0 md5" >> "$PG_DATA/pg_hba.conf"
-    echo "listen_addresses = '127.0.0.1'" >> "$PG_DATA/postgresql.conf"
-fi
-
-echo "Starting PostgreSQL..."
-su - postgres -c "$PG_BIN/pg_ctl -D $PG_DATA -w start"
-
-if ! su - postgres -c "psql -tAc \"SELECT 1 FROM pg_roles WHERE rolname='$POSTGRES_USER'\"" | grep -q 1; then
-    echo "Creating PostgreSQL user and database..."
-    su - postgres -c "psql -c \"CREATE USER \\\"$POSTGRES_USER\\\" WITH SUPERUSER PASSWORD '$POSTGRES_PASSWORD';\""
-    su - postgres -c "psql -c \"CREATE DATABASE \\\"$POSTGRES_DB\\\" OWNER \\\"$POSTGRES_USER\\\";\""
+    export POSTGRES_URL="postgresql://user:${POSTGRES_PASSWORD}@postgres:5432/dashboard?schema=public"
+    export SITE_CONFIG_DATABASE_URL="postgresql://siteconfig_ro:${POSTGRES_SITECONFIG_RO_PASSWORD}@postgres:5432/dashboard"
 fi
 
 echo "Running ClickHouse migrations..."
@@ -81,9 +60,6 @@ else
     echo "Configuring nginx without SSL..."
     cp /etc/nginx/templates/nginx.conf /etc/nginx/conf.d/default.conf
 fi
-
-echo "Stopping bootstrap PostgreSQL (supervisord will manage it)..."
-su - postgres -c "$PG_BIN/pg_ctl -D $PG_DATA -w stop"
 
 echo "Starting services..."
 exec /usr/bin/supervisord -c /etc/supervisor/conf.d/betterlytics.conf

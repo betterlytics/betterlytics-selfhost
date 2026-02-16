@@ -19,7 +19,6 @@ services:
       - ./base/supervisord.conf:/etc/supervisor/conf.d/betterlytics.conf:ro
       - ./base/derive.sh:/derive.sh:ro
       - ./base/entrypoint.sh:/entrypoint.sh:ro
-      - betterlytics_selfhost_postgres_data:/var/lib/postgresql/data
       - betterlytics_selfhost_letsencrypt_certs:/etc/letsencrypt
     entrypoint: ["/bin/sh", "/entrypoint.sh"]
     healthcheck:
@@ -29,10 +28,36 @@ services:
       retries: 3
       start_period: 30s
     depends_on:
+      postgres:
+        condition: service_healthy
       clickhouse:
         condition: service_healthy
     networks:
       - clickhouse_network
+      - postgres_network
+    logging: *default-logging
+
+  postgres:
+    image: postgres:17.5
+    container_name: betterlytics-postgres
+    hostname: postgres
+    restart: unless-stopped
+    entrypoint: ["/bin/bash", "/entrypoint-wrapper.sh"]
+    env_file:
+      - .env
+      - ./base/.env.base
+    volumes:
+      - ./base/postgres-config/entrypoint-wrapper.sh:/entrypoint-wrapper.sh:ro
+      - ./base/derive.sh:/derive.sh:ro
+      - betterlytics_selfhost_postgres_data:/var/lib/postgresql/data/
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 2s
+      retries: 10
+      start_period: 10s
+    networks:
+      - postgres_network
     logging: *default-logging
 
   clickhouse:
@@ -74,3 +99,5 @@ volumes:
 networks:
   clickhouse_network:
     name: betterlytics_clickhouse_network
+  postgres_network:
+    name: betterlytics_postgres_network
