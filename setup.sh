@@ -201,12 +201,14 @@ echo "  Choose a deployment mode: (Use ▲/▼ to select, Enter to confirm)"
 echo ""
 
 menu_select \
-    "Standalone" "Automatic HTTPS via Let's Encrypt" \
-    "Basic"      "HTTP only — for local use or behind a reverse proxy"
+    "Standalone"  "Automatic HTTPS via Let's Encrypt" \
+    "Basic"       "HTTP only — for use behind a reverse proxy" \
+    "Try locally" "Quick local setup on localhost"
 
 case "$MENU_RESULT" in
     0) DEPLOY_MODE="standalone" ;;
     1) DEPLOY_MODE="basic" ;;
+    2) DEPLOY_MODE="local" ;;
 esac
 
 # =============================================
@@ -231,19 +233,15 @@ if [ "$DEPLOY_MODE" = "standalone" ]; then
         validate_not_empty "$DOMAIN" "Domain" && validate_domain "$DOMAIN" && break
     done
 
-else
+elif [ "$DEPLOY_MODE" = "basic" ]; then
     HTTP_SCHEME="http"
     HTTPS_PORT=443
-    BIND_ADDRESS="127.0.0.1"
+    BIND_ADDRESS="0.0.0.0"
 
     while true; do
-        printf "  Domain name (default: localhost): "
+        printf "  Domain name (e.g. analytics.example.com): "
         read -r DOMAIN
-        if [ -z "$DOMAIN" ]; then
-            DOMAIN="localhost"
-            break
-        fi
-        validate_domain "$DOMAIN" && break
+        validate_not_empty "$DOMAIN" "Domain" && validate_domain "$DOMAIN" && break
     done
 
     while true; do
@@ -255,6 +253,24 @@ else
         fi
         validate_port "$PORT_INPUT" && HTTP_PORT="$PORT_INPUT" && break
     done
+
+else
+    # local mode
+    HTTP_SCHEME="http"
+    HTTPS_PORT=443
+    BIND_ADDRESS="127.0.0.1"
+
+    while true; do
+        printf "  HTTP port (default: 5566): "
+        read -r PORT_INPUT
+        if [ -z "$PORT_INPUT" ]; then
+            HTTP_PORT=5566
+            break
+        fi
+        validate_port "$PORT_INPUT" && HTTP_PORT="$PORT_INPUT" && break
+    done
+
+    DOMAIN="localhost:${HTTP_PORT}"
 fi
 
 # =============================================
@@ -321,6 +337,11 @@ SECRET_BASE="${SECRET_BASE}"
 
 EOF
 
+if [ "$DEPLOY_MODE" = "local" ]; then
+    echo "FORCE_HTTP_SCHEME=http" >> "$ENV_FILE"
+    echo "" >> "$ENV_FILE"
+fi
+
 # --- Write docker-compose.override.yml ---
 
 OVERRIDE_FILE="docker-compose.override.yml"
@@ -342,7 +363,9 @@ fi
 # Build the access URL
 if [ "$DEPLOY_MODE" = "standalone" ]; then
     ACCESS_URL="https://${DOMAIN}"
-elif [ "$DOMAIN" = "localhost" ] || echo "$DOMAIN" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$'; then
+elif [ "$DEPLOY_MODE" = "local" ]; then
+    ACCESS_URL="http://${DOMAIN}"
+elif echo "$DOMAIN" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$'; then
     if [ "$HTTP_PORT" = "80" ]; then
         ACCESS_URL="http://${DOMAIN}"
     else
@@ -357,7 +380,14 @@ echo "==========================================="
 echo "  Setup Complete"
 echo "==========================================="
 echo ""
-echo "  Mode:       $([ "$DEPLOY_MODE" = "standalone" ] && echo "Standalone (automatic HTTPS)" || echo "Basic (HTTP)")"
+if [ "$DEPLOY_MODE" = "standalone" ]; then
+    _mode_label="Standalone (automatic HTTPS)"
+elif [ "$DEPLOY_MODE" = "basic" ]; then
+    _mode_label="Basic (HTTP)"
+else
+    _mode_label="Try locally (HTTP on localhost)"
+fi
+echo "  Mode:       ${_mode_label}"
 echo "  Domain:     ${DOMAIN}"
 echo "  Admin:      ${ADMIN_EMAIL}"
 echo "  URL:        ${ACCESS_URL}"
