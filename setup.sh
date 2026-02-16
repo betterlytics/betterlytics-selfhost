@@ -89,9 +89,9 @@ menu_select() {
         eval "_ml=\"\$_menu_label_${_menu_i}\""
         eval "_md=\"\$_menu_desc_${_menu_i}\""
         if [ "$_menu_i" -eq "$_menu_sel" ]; then
-            printf "  > %s  —  %s\r\n" "$_ml" "$_md"
+            printf "  > %s  -  %s\r\n" "$_ml" "$_md"
         else
-            printf "    %s  —  %s\r\n" "$_ml" "$_md"
+            printf "    %s  -  %s\r\n" "$_ml" "$_md"
         fi
         _menu_i=$((_menu_i + 1))
     done
@@ -101,12 +101,12 @@ menu_select() {
         _key=$(dd bs=1 count=1 2>/dev/null)
 
         if [ "$_key" = "$(printf '\003')" ]; then
-            # Ctrl+C — restore terminal and exit
+            # Ctrl+C - restore terminal and exit
             stty "$_menu_old_stty"
             printf "\r\n"
             exit 130
         elif [ "$_key" = "$(printf '\033')" ]; then
-            # Escape sequence — read next two chars
+            # Escape sequence - read next two chars
             _k2=$(dd bs=1 count=1 2>/dev/null)
             _k3=$(dd bs=1 count=1 2>/dev/null)
             if [ "$_k2" = "[" ]; then
@@ -151,9 +151,9 @@ menu_select() {
             eval "_ml=\"\$_menu_label_${_menu_i}\""
             eval "_md=\"\$_menu_desc_${_menu_i}\""
             if [ "$_menu_i" -eq "$_menu_sel" ]; then
-                printf "  > %s  —  %s\033[K\r\n" "$_ml" "$_md"
+                printf "  > %s  -  %s\033[K\r\n" "$_ml" "$_md"
             else
-                printf "    %s  —  %s\033[K\r\n" "$_ml" "$_md"
+                printf "    %s  -  %s\033[K\r\n" "$_ml" "$_md"
             fi
             _menu_i=$((_menu_i + 1))
         done
@@ -189,7 +189,7 @@ fi
 
 echo ""
 echo "==========================================="
-echo "  Betterlytics  —  Self-Hosted Setup"
+echo "  Betterlytics  -  Self-Hosted Setup"
 echo "==========================================="
 echo ""
 
@@ -202,7 +202,7 @@ echo ""
 
 menu_select \
     "Standalone"  "Automatic HTTPS via Let's Encrypt" \
-    "Basic"       "HTTP only — for use behind a reverse proxy" \
+    "Basic"       "HTTP only for use behind a reverse proxy" \
     "Try locally" "Quick local setup on localhost"
 
 case "$MENU_RESULT" in
@@ -398,7 +398,7 @@ echo "-------------------------------------------"
 echo ""
 echo "  1. Start Betterlytics:"
 echo ""
-echo "     docker compose up -d"
+echo "     docker compose up -d --wait"
 echo ""
 echo "  2. Open ${ACCESS_URL} in your browser"
 echo "     and log in with your admin credentials."
