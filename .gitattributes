@@ -1,0 +1,6 @@
+*.sh eol=lf
+*.conf eol=lf
+*.xml eol=lf
+*.yml eol=lf
+*.yaml eol=lf
+.env* eol=lf

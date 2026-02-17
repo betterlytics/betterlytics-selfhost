@@ -1,69 +1,82 @@
+x-logging: &default-logging
+  driver: "local"
+  options:
+    max-size: "10m"
+    max-file: "5"
+
 services:
-  proxy:
-    build:
-      context: ./base/proxy
-      dockerfile: ./Dockerfile
-    container_name: proxy
-    hostname: proxy
-    volumes:
-      - ./base/static:/usr/share/nginx/html:ro
+  betterlytics-selfhost:
+    image: ghcr.io/betterlytics/betterlytics-selfhost:latest
+    env_file:
+      - .env
+      - ./base/.env.base
     restart: unless-stopped
-    depends_on:
-      init:
-        condition: service_completed_successfully
-      backend:
-        condition: service_started
-      dashboard:
-        condition: service_started
+    container_name: betterlytics-selfhost
     ports:
-      - 5862:80
-    networks:
-      - proxy_network
-
-  backend:
-    image: ghcr.io/betterlytics/betterlytics-backend:v1.0.0
-    container_name: backend
-    hostname: backend
-    env_file:
-      - .env
-      - ./base/.env.base
+      - "${BIND_ADDRESS:-127.0.0.1}:${HTTP_PORT:-5566}:80"
+    volumes:
+      - ./base/proxy:/etc/nginx/templates:ro
+      - ./base/supervisord.conf:/etc/supervisor/conf.d/betterlytics.conf:ro
+      - ./base/derive.sh:/derive.sh:ro
+      - ./base/entrypoint.sh:/entrypoint.sh:ro
+      - betterlytics_selfhost_letsencrypt_certs:/etc/letsencrypt
+      - betterlytics_selfhost_certbot_www:/var/www/certbot
+    entrypoint: ["/bin/sh", "/entrypoint.sh"]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
     depends_on:
-      init:
-        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
+      clickhouse:
+        condition: service_healthy
     networks:
-      - proxy_network
       - clickhouse_network
-
-  dashboard:
-    image: ghcr.io/betterlytics/betterlytics-dashboard:v1.0.0
-    env_file:
-      - .env
-      - ./base/.env.base
-    restart: unless-stopped
-    container_name: dashboard
-    hostname: dashboard
-    depends_on:
-      init:
-        condition: service_completed_successfully
-    networks:
-      - proxy_network
       - postgres_network
-      - clickhouse_network
+    logging: *default-logging
+
+  postgres:
+    image: postgres:17.5
+    container_name: betterlytics-postgres
+    hostname: postgres
+    restart: unless-stopped
+    entrypoint: ["/bin/bash", "/entrypoint-wrapper.sh"]
+    env_file:
+      - .env
+      - ./base/.env.base
+    volumes:
+      - ./base/postgres-config/entrypoint-wrapper.sh:/entrypoint-wrapper.sh:ro
+      - ./base/derive.sh:/derive.sh:ro
+      - betterlytics_selfhost_postgres_data:/var/lib/postgresql/data/
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 2s
+      retries: 10
+      start_period: 10s
+    networks:
+      - postgres_network
+    logging: *default-logging
 
   clickhouse:
-    image: clickhouse/clickhouse-server:latest
+    image: clickhouse/clickhouse-server:25.8
     user: 101:101
-    container_name: clickhouse
-    hostname: clickhouse
+    container_name: betterlytics-clickhouse
     restart: unless-stopped
+    entrypoint: ["/bin/sh", "/entrypoint-wrapper.sh"]
     env_file:
       - .env
       - ./base/.env.base
     volumes:
-      - clickhouse_prod_data:/var/lib/clickhouse/
-      - clickhouse_prod_users:/etc/clickhouse-server/users.d/
-      - ./base/clickhouse-config/config.d/config.xml:/etc/clickhouse-server/config.d/config.xml
-      - ./base/clickhouse-config/setup/:/docker-entrypoint-initdb.d/
+      - ./base/clickhouse-config/config.d/config.xml:/etc/clickhouse-server/config.d/config.xml:ro
+      - ./base/clickhouse-config/entrypoint-wrapper.sh:/entrypoint-wrapper.sh:ro
+      - ./base/clickhouse-config/setup/:/docker-entrypoint-initdb.d/:ro
+      - ./base/derive.sh:/derive.sh:ro
+      - betterlytics_selfhost_clickhouse_data:/var/lib/clickhouse/
+      - betterlytics_selfhost_clickhouse_users:/etc/clickhouse-server/users.d/
     ulimits:
       nofile:
         soft: 262144
@@ -76,48 +89,17 @@ services:
       start_period: 10s
     networks:
       - clickhouse_network
-
-  postgres:
-    image: postgres:latest
-    container_name: postgres
-    hostname: postgres
-    restart: unless-stopped
-    env_file:
-      - .env
-      - ./base/.env.base
-    volumes:
-      - postgres_prod_data:/var/lib/postgresql/data/
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
-      interval: 5s
-      timeout: 2s
-      retries: 10
-      start_period: 10s
-    networks:
-      - postgres_network
-
-  init:
-    image: ghcr.io/betterlytics/betterlytics-initializer:v1.0.0
-    container_name: init
-    hostname: init
-    env_file:
-      - .env
-      - ./base/.env.base
-    depends_on:
-      clickhouse:
-        condition: service_healthy
-      postgres:
-        condition: service_healthy
-    networks:
-      - postgres_network
-      - clickhouse_network
+    logging: *default-logging
 
 volumes:
-  clickhouse_prod_data:
-  clickhouse_prod_users:
-  postgres_prod_data:
+  betterlytics_selfhost_postgres_data:
+  betterlytics_selfhost_clickhouse_data:
+  betterlytics_selfhost_clickhouse_users:
+  betterlytics_selfhost_letsencrypt_certs:
+  betterlytics_selfhost_certbot_www:
 
 networks:
-  proxy_network:
-  postgres_network:
   clickhouse_network:
+    name: betterlytics_clickhouse_network
+  postgres_network:
+    name: betterlytics_postgres_network
