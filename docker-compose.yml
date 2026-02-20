@@ -8,8 +8,30 @@ services:
   betterlytics-selfhost:
     image: ghcr.io/betterlytics/betterlytics-selfhost:latest
     env_file:
-      - .env
       - ./base/.env.base
+    environment:
+      - DOMAIN
+      - HTTP_SCHEME
+      - HTTP_PORT
+      - HTTPS_PORT
+      - BIND_ADDRESS
+      - FORCE_HTTP_SCHEME
+      - SSL_EMAIL
+      - SECRET_BASE
+      - ADMIN_EMAIL
+      - ADMIN_PASSWORD
+      - DEFAULT_LANGUAGE
+      - ENABLE_UPTIME_MONITORING
+      - ENABLE_EMAILS
+      - MAILER_SEND_API_TOKEN
+      - SMTP_HOST
+      - SMTP_PORT
+      - SMTP_USER
+      - SMTP_PASSWORD
+      - SMTP_FROM
+      - ENABLE_GEOLOCATION
+      - MAXMIND_ACCOUNT_ID
+      - MAXMIND_LICENSE_KEY
     restart: unless-stopped
     container_name: betterlytics-selfhost
     ports:
@@ -45,8 +67,9 @@ services:
     restart: unless-stopped
     entrypoint: ["/bin/bash", "/entrypoint-wrapper.sh"]
     env_file:
-      - .env
       - ./base/.env.base
+    environment:
+      - SECRET_BASE
     volumes:
       - ./base/postgres-config/entrypoint-wrapper.sh:/entrypoint-wrapper.sh:ro
       - ./base/derive.sh:/derive.sh:ro
@@ -68,8 +91,9 @@ services:
     restart: unless-stopped
     entrypoint: ["/bin/sh", "/entrypoint-wrapper.sh"]
     env_file:
-      - .env
       - ./base/.env.base
+    environment:
+      - SECRET_BASE
     volumes:
       - ./base/clickhouse-config/config.d/config.xml:/etc/clickhouse-server/config.d/config.xml:ro
       - ./base/clickhouse-config/entrypoint-wrapper.sh:/entrypoint-wrapper.sh:ro
