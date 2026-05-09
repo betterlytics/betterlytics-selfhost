@@ -299,6 +299,28 @@ while true; do
 done
 
 # =============================================
+#  Step 4: User Registration
+# =============================================
+
+echo ""
+echo "-------------------------------------------"
+echo "  User Registration"
+echo "-------------------------------------------"
+echo ""
+echo "  Allow new users to sign up at /signup? (Use ▲/▼ to select, Enter to confirm)"
+echo ""
+
+menu_select \
+    "Disabled" "Only the admin account can sign in (recommended)" \
+    "Enabled"  "Anyone who reaches the site can register an account"
+
+if [ "$MENU_RESULT" -eq 1 ]; then
+    ENABLE_REGISTRATION="true"
+else
+    ENABLE_REGISTRATION="false"
+fi
+
+# =============================================
 #  Generate & Write Configuration
 # =============================================
 
@@ -317,6 +339,7 @@ ADMIN_PASSWORD="${ADMIN_PASSWORD}"
 # --- General ---
 DEFAULT_LANGUAGE="en"
 ENABLE_UPTIME_MONITORING="false"
+ENABLE_REGISTRATION="${ENABLE_REGISTRATION}"
 
 # --- Geolocation ---
 ENABLE_GEOLOCATION="false"
@@ -387,10 +410,16 @@ elif [ "$DEPLOY_MODE" = "basic" ]; then
 else
     _mode_label="Try locally (HTTP on localhost)"
 fi
-echo "  Mode:       ${_mode_label}"
-echo "  Domain:     ${DOMAIN}"
-echo "  Admin:      ${ADMIN_EMAIL}"
-echo "  URL:        ${ACCESS_URL}"
+if [ "$ENABLE_REGISTRATION" = "true" ]; then
+    _reg_label="Enabled"
+else
+    _reg_label="Disabled"
+fi
+echo "  Mode:         ${_mode_label}"
+echo "  Domain:       ${DOMAIN}"
+echo "  Admin:        ${ADMIN_EMAIL}"
+echo "  Registration: ${_reg_label}"
+echo "  URL:          ${ACCESS_URL}"
 echo ""
 echo "-------------------------------------------"
 echo "  Next steps"
