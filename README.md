@@ -30,6 +30,34 @@ docker compose up -d
 
 Ports 80 and 443 must be accessible from the internet for ACME challenges and HTTPS traffic. When using `setup.sh`, this is handled automatically, the script generates a `docker-compose.override.yml` that exposes port 443 and binds to `0.0.0.0`.
 
+## Upgrading
+
+Run the update script:
+
+```bash
+./update.sh
+```
+
+Or manually — always update this repository BEFORE pulling a new image, as the
+image and the config files in this repo move in lockstep:
+
+```bash
+git pull
+docker compose pull
+docker compose up -d --wait
+```
+
+### Upgrading from v1.3.5 or earlier
+
+This release includes one-time ClickHouse migrations that rewrite the events
+table. Before upgrading:
+
+- Ensure free disk space of at least 2–3× the size of your ClickHouse data
+  volume (the events table is rewritten twice; space is reclaimed at the end).
+- Expect a long first boot on large installations. Do not interrupt the
+  container while migrations run.
+- Back up your ClickHouse and Postgres volumes first.
+
 ## Configuration Reference
 
 | Variable                   | Description                                              | Default |
@@ -51,6 +79,9 @@ Ports 80 and 443 must be accessible from the internet for ACME challenges and HT
 | `ENABLE_GEOLOCATION`       | Enable IP geolocation (requires MaxMind)                 | `false` |
 | `MAXMIND_ACCOUNT_ID`       | MaxMind account ID                                       |         |
 | `MAXMIND_LICENSE_KEY`      | MaxMind license key                                      |         |
+| `GEOLOCATION_MODE`         | `country` (~9 MB DB) or `full` for city/region (~61 MB)  | `country` |
+| `BACKGROUND_JOBS_ENABLED`  | Email reports and data-retention cleanup                 | `true`  |
+| `PUSHOVER_APP_TOKEN`       | Pushover app token for uptime alert integrations         |         |
 | `HTTP_PORT`                | Exposed HTTP port                                        |         |
 
 All database passwords, `NEXTAUTH_SECRET`, and `TOTP_SECRET_ENCRYPTION_KEY` are derived automatically from `SECRET_BASE`. You only need to set one secret.
