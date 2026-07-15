@@ -33,7 +33,7 @@ services:
       - MAXMIND_ACCOUNT_ID
       - MAXMIND_LICENSE_KEY
       - GEOLOCATION_MODE
-      - BACKGROUND_JOBS_ENABLED
+      - BACKGROUND_JOBS_ENABLED=${BACKGROUND_JOBS_ENABLED:-true}
       - PUSHOVER_APP_TOKEN
     restart: unless-stopped
     container_name: betterlytics-selfhost
