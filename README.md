@@ -32,8 +32,14 @@ Ports 80 and 443 must be accessible from the internet for ACME challenges and HT
 
 ## Upgrading
 
-Always update this repository BEFORE pulling a new image — the image and the
-config files in this repo move in lockstep:
+Run the update script:
+
+```bash
+./update.sh
+```
+
+Or manually — always update this repository BEFORE pulling a new image, as the
+image and the config files in this repo move in lockstep:
 
 ```bash
 git pull
