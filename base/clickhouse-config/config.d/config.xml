@@ -35,9 +35,20 @@
       <max_download_threads>1</max_download_threads>
       <input_format_parallel_parsing>0</input_format_parallel_parsing>
       <output_format_parallel_formatting>0</output_format_parallel_formatting>
+      <max_execution_time>30</max_execution_time>
     </default>
   </profile>
-  
+
+  <named_collections>
+    <referrer_dict_source>
+      <host overridable="false">localhost</host>
+      <port overridable="false">9000</port>
+      <database overridable="false">analytics</database>
+      <user overridable="false" from_env="CLICKHOUSE_BACKEND_USER" />
+      <password overridable="false" from_env="CLICKHOUSE_BACKEND_PASSWORD" />
+    </referrer_dict_source>
+  </named_collections>
+
   <timezone>UTC</timezone>
 
   <!-- User settings -->
