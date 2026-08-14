@@ -44,6 +44,7 @@ services:
       - S3_SSE_ENABLED
       - REPLAY_S3_ACCESS_KEY
       - REPLAY_S3_SECRET_KEY
+      - ENABLE_DASHBOARD_TRACKING
     restart: unless-stopped
     container_name: betterlytics-selfhost
     ports:
