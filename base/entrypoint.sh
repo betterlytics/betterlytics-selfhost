@@ -18,6 +18,17 @@ if [ -n "$SECRET_BASE" ]; then
     export SITE_CONFIG_DATABASE_URL="postgresql://siteconfig_ro:${POSTGRES_SITECONFIG_RO_PASSWORD}@postgres:5432/dashboard"
 fi
 
+if [ "$SESSION_REPLAYS_ENABLED" = "true" ] && [ -z "$S3_ENABLED" ] && [ -n "$REPLAY_S3_ACCESS_KEY" ]; then
+    export S3_ENABLED="true"
+    export S3_ENDPOINT="${S3_ENDPOINT:-$PUBLIC_BASE_URL}"
+    export S3_INTERNAL_ENDPOINT="${S3_INTERNAL_ENDPOINT:-http://garage:3900}"
+    export S3_BUCKET="${S3_BUCKET:-replay-storage}"
+    export S3_REGION="${S3_REGION:-garage}"
+    export S3_ACCESS_KEY_ID="${S3_ACCESS_KEY_ID:-$REPLAY_S3_ACCESS_KEY}"
+    export S3_SECRET_ACCESS_KEY="${S3_SECRET_ACCESS_KEY:-$REPLAY_S3_SECRET_KEY}"
+    export S3_FORCE_PATH_STYLE="${S3_FORCE_PATH_STYLE:-true}"
+fi
+
 echo "Running ClickHouse migrations..."
 cd /app/initializer
 NODE_ENV=production node scripts/run-migration.js

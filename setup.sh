@@ -13,6 +13,10 @@ generate_secret() {
     tr -dc 'A-Za-z0-9' < /dev/urandom | head -c "$1"
 }
 
+generate_hex_secret() {
+    tr -dc 'a-f0-9' < /dev/urandom | head -c "$1"
+}
+
 # Validators return 0 on success, 1 on failure (and print the error message).
 
 validate_not_empty() {
@@ -298,11 +302,33 @@ while true; do
     validate_not_empty "$ADMIN_PASSWORD" "Admin password" && break
 done
 
+echo ""
+echo "-------------------------------------------"
+echo "  Session Replay"
+echo "-------------------------------------------"
+echo ""
+echo "  Record visitor sessions and play them back in the dashboard."
+echo "  Enabling this runs a bundled object storage service. (Use ▲/▼ to select, Enter to confirm)"
+echo ""
+
+menu_select \
+    "Disabled" "No session recording, no extra services" \
+    "Enabled"  "Record sessions into bundled object storage"
+
+if [ "$MENU_RESULT" -eq 1 ]; then
+    SESSION_REPLAYS_ENABLED="true"
+else
+    SESSION_REPLAYS_ENABLED="false"
+fi
+
 # =============================================
 #  Generate & Write Configuration
 # =============================================
 
 SECRET_BASE=$(generate_secret 64)
+GARAGE_RPC_SECRET=$(generate_hex_secret 64)
+REPLAY_S3_ACCESS_KEY="GK$(generate_hex_secret 24)"
+REPLAY_S3_SECRET_KEY=$(generate_hex_secret 64)
 
 cat > "$ENV_FILE" <<EOF
 # ===========================================
@@ -323,6 +349,12 @@ ENABLE_GEOLOCATION="false"
 MAXMIND_ACCOUNT_ID="xxxxx"
 MAXMIND_LICENSE_KEY="xxxxx"
 
+# --- Session Replay ---
+SESSION_REPLAYS_ENABLED="${SESSION_REPLAYS_ENABLED}"
+GARAGE_RPC_SECRET="${GARAGE_RPC_SECRET}"
+REPLAY_S3_ACCESS_KEY="${REPLAY_S3_ACCESS_KEY}"
+REPLAY_S3_SECRET_KEY="${REPLAY_S3_SECRET_KEY}"
+
 # --- Domain ---
 DOMAIN="${DOMAIN}"
 
@@ -336,6 +368,11 @@ BIND_ADDRESS="${BIND_ADDRESS}"
 SECRET_BASE="${SECRET_BASE}"
 
 EOF
+
+if [ "$SESSION_REPLAYS_ENABLED" = "true" ]; then
+    echo "COMPOSE_PROFILES=replay" >> "$ENV_FILE"
+    echo "" >> "$ENV_FILE"
+fi
 
 if [ "$DEPLOY_MODE" = "local" ]; then
     echo "FORCE_HTTP_SCHEME=http" >> "$ENV_FILE"
@@ -387,9 +424,15 @@ elif [ "$DEPLOY_MODE" = "basic" ]; then
 else
     _mode_label="Try locally (HTTP on localhost)"
 fi
+if [ "$SESSION_REPLAYS_ENABLED" = "true" ]; then
+    _replay_label="enabled"
+else
+    _replay_label="disabled"
+fi
 echo "  Mode:       ${_mode_label}"
 echo "  Domain:     ${DOMAIN}"
 echo "  Admin:      ${ADMIN_EMAIL}"
+echo "  Replay:     ${_replay_label}"
 echo "  URL:        ${ACCESS_URL}"
 echo ""
 echo "-------------------------------------------"
@@ -417,6 +460,12 @@ echo ""
 echo "  Email notifications:"
 echo "    Set ENABLE_EMAILS=true and configure"
 echo "    SMTP or MailerSend in your .env file."
+echo ""
+echo "  Session replay:"
+echo "    Set SESSION_REPLAYS_ENABLED=true and"
+echo "    COMPOSE_PROFILES=replay in your .env file,"
+echo "    or bring your own S3-compatible storage"
+echo "    via the S3_* variables (see README)."
 echo ""
 echo "  See .env.example for all available options."
 echo ""
