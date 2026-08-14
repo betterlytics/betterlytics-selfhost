@@ -32,7 +32,6 @@ services:
       - ENABLE_GEOLOCATION
       - MAXMIND_ACCOUNT_ID
       - MAXMIND_LICENSE_KEY
-      - SESSION_REPLAYS_ENABLED
       - S3_ENABLED
       - S3_BUCKET
       - S3_REGION
@@ -133,7 +132,6 @@ services:
     image: dxflrs/garage:v2.3.0
     container_name: betterlytics-garage
     hostname: garage
-    profiles: ["replay"]
     restart: unless-stopped
     entrypoint: ["/garage"]
     command: ["server", "--single-node", "--default-bucket"]
@@ -158,7 +156,6 @@ services:
   garage-init:
     image: amazon/aws-cli:2.36.20
     container_name: betterlytics-garage-init
-    profiles: ["replay"]
     restart: "no"
     entrypoint: ["/bin/sh", "/init.sh"]
     env_file:
