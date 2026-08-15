@@ -13,10 +13,6 @@ generate_secret() {
     tr -dc 'A-Za-z0-9' < /dev/urandom | head -c "$1"
 }
 
-generate_hex_secret() {
-    tr -dc 'a-f0-9' < /dev/urandom | head -c "$1"
-}
-
 # Validators return 0 on success, 1 on failure (and print the error message).
 
 validate_not_empty() {
@@ -307,9 +303,6 @@ done
 # =============================================
 
 SECRET_BASE=$(generate_secret 64)
-GARAGE_RPC_SECRET=$(generate_hex_secret 64)
-REPLAY_S3_ACCESS_KEY="GK$(generate_hex_secret 24)"
-REPLAY_S3_SECRET_KEY=$(generate_hex_secret 64)
 
 cat > "$ENV_FILE" <<EOF
 # ===========================================
@@ -329,11 +322,6 @@ ENABLE_UPTIME_MONITORING="false"
 ENABLE_GEOLOCATION="false"
 MAXMIND_ACCOUNT_ID="xxxxx"
 MAXMIND_LICENSE_KEY="xxxxx"
-
-# --- Session Replay ---
-GARAGE_RPC_SECRET="${GARAGE_RPC_SECRET}"
-REPLAY_S3_ACCESS_KEY="${REPLAY_S3_ACCESS_KEY}"
-REPLAY_S3_SECRET_KEY="${REPLAY_S3_SECRET_KEY}"
 
 # --- Domain ---
 DOMAIN="${DOMAIN}"
@@ -432,8 +420,7 @@ echo "    SMTP or MailerSend in your .env file."
 echo ""
 echo "  Session replay (enabled by default):"
 echo "    To disable, add SESSION_REPLAYS_ENABLED=false"
-echo "    to your .env file. For custom S3 storage, see"
-echo "    https://betterlytics.io/docs/installation/self-hosting"
+echo "    to your .env file."
 echo ""
 echo "  See .env.example for all available options."
 echo ""

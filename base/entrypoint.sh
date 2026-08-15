@@ -18,15 +18,44 @@ if [ -n "$SECRET_BASE" ]; then
     export SITE_CONFIG_DATABASE_URL="postgresql://siteconfig_ro:${POSTGRES_SITECONFIG_RO_PASSWORD}@postgres:5432/dashboard"
 fi
 
-if [ "$SESSION_REPLAYS_ENABLED" = "true" ] && [ -z "$S3_ENABLED" ] && [ -n "$REPLAY_S3_ACCESS_KEY" ]; then
+# Bundled Garage replay storage; BYO-S3 (S3_ENABLED set in .env) skips it entirely
+GARAGE_ENABLED=false
+if [ "$SESSION_REPLAYS_ENABLED" = "true" ] && [ -z "$S3_ENABLED" ] && [ -n "$SECRET_BASE" ]; then
+    GARAGE_ENABLED=true
+    export GARAGE_RPC_SECRET=$(derive_hex_secret "garage-rpc" 64)
+    export GARAGE_DEFAULT_ACCESS_KEY="GK$(derive_hex_secret "replay-s3-access" 24)"
+    export GARAGE_DEFAULT_SECRET_KEY=$(derive_hex_secret "replay-s3-secret" 64)
+    export GARAGE_DEFAULT_BUCKET="replay-storage"
+
     export S3_ENABLED="true"
-    export S3_ENDPOINT="${S3_ENDPOINT:-$PUBLIC_BASE_URL}"
-    export S3_INTERNAL_ENDPOINT="${S3_INTERNAL_ENDPOINT:-http://garage:3900}"
-    export S3_BUCKET="${S3_BUCKET:-replay-storage}"
-    export S3_REGION="${S3_REGION:-garage}"
-    export S3_ACCESS_KEY_ID="${S3_ACCESS_KEY_ID:-$REPLAY_S3_ACCESS_KEY}"
-    export S3_SECRET_ACCESS_KEY="${S3_SECRET_ACCESS_KEY:-$REPLAY_S3_SECRET_KEY}"
-    export S3_FORCE_PATH_STYLE="${S3_FORCE_PATH_STYLE:-true}"
+    # The bucket name doubles as the /replay-storage nginx routing prefix
+    export S3_ENDPOINT="$PUBLIC_BASE_URL"
+    export S3_INTERNAL_ENDPOINT="http://127.0.0.1:3900"
+    export S3_BUCKET="replay-storage"
+    export S3_REGION="garage"
+    export S3_ACCESS_KEY_ID="$GARAGE_DEFAULT_ACCESS_KEY"
+    export S3_SECRET_ACCESS_KEY="$GARAGE_DEFAULT_SECRET_KEY"
+    export S3_FORCE_PATH_STYLE="true"
+    export S3_MANAGE_BUCKET_RULES="true"
+fi
+
+# Always write the file so the supervisord include glob matches; empty when Garage is off
+mkdir -p /run/supervisord
+if [ "$GARAGE_ENABLED" = "true" ]; then
+    cat > /run/supervisord/garage.conf <<'EOF'
+[program:garage]
+command=/usr/local/bin/garage -c /etc/garage.toml server --single-node --default-bucket
+stdout_logfile=/dev/stdout
+stdout_logfile_maxbytes=0
+stderr_logfile=/dev/stderr
+stderr_logfile_maxbytes=0
+autorestart=true
+startsecs=5
+startretries=3
+priority=10
+EOF
+else
+    : > /run/supervisord/garage.conf
 fi
 
 echo "Running ClickHouse migrations..."

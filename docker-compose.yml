@@ -41,8 +41,7 @@ services:
       - S3_SECRET_ACCESS_KEY
       - S3_FORCE_PATH_STYLE
       - S3_SSE_ENABLED
-      - REPLAY_S3_ACCESS_KEY
-      - REPLAY_S3_SECRET_KEY
+      - REPLAY_RETENTION_DAYS
       - ENABLE_DASHBOARD_TRACKING
     restart: unless-stopped
     container_name: betterlytics-selfhost
@@ -53,8 +52,10 @@ services:
       - ./base/supervisord.conf:/etc/supervisor/conf.d/betterlytics.conf:ro
       - ./base/derive.sh:/derive.sh:ro
       - ./base/entrypoint.sh:/entrypoint.sh:ro
+      - ./base/garage-config/garage.toml:/etc/garage.toml:ro
       - betterlytics_selfhost_letsencrypt_certs:/etc/letsencrypt
       - betterlytics_selfhost_certbot_www:/var/www/certbot
+      - betterlytics_selfhost_garage_data:/var/lib/garage
     entrypoint: ["/bin/sh", "/entrypoint.sh"]
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:80/"]
@@ -70,7 +71,6 @@ services:
     networks:
       - clickhouse_network
       - postgres_network
-      - garage_network
     logging: *default-logging
 
   postgres:
@@ -128,51 +128,6 @@ services:
       - clickhouse_network
     logging: *default-logging
 
-  garage:
-    image: dxflrs/garage:v2.3.0
-    container_name: betterlytics-garage
-    hostname: garage
-    restart: unless-stopped
-    entrypoint: ["/garage"]
-    command: ["server", "--single-node", "--default-bucket"]
-    environment:
-      - GARAGE_RPC_SECRET
-      - GARAGE_DEFAULT_ACCESS_KEY=${REPLAY_S3_ACCESS_KEY:-}
-      - GARAGE_DEFAULT_SECRET_KEY=${REPLAY_S3_SECRET_KEY:-}
-      - GARAGE_DEFAULT_BUCKET=replay-storage
-    volumes:
-      - ./base/garage-config/garage.toml:/etc/garage.toml:ro
-      - betterlytics_selfhost_garage_data:/var/lib/garage
-    healthcheck:
-      test: ["CMD", "/garage", "status"]
-      interval: 5s
-      timeout: 3s
-      retries: 10
-      start_period: 15s
-    networks:
-      - garage_network
-    logging: *default-logging
-
-  garage-init:
-    image: amazon/aws-cli:2.36.20
-    container_name: betterlytics-garage-init
-    restart: "no"
-    entrypoint: ["/bin/sh", "/init.sh"]
-    env_file:
-      - ./base/.env.base
-    environment:
-      - REPLAY_S3_ACCESS_KEY
-      - REPLAY_S3_SECRET_KEY
-      - REPLAY_RETENTION_DAYS
-    volumes:
-      - ./base/garage-config/init.sh:/init.sh:ro
-    depends_on:
-      garage:
-        condition: service_healthy
-    networks:
-      - garage_network
-    logging: *default-logging
-
 volumes:
   betterlytics_selfhost_postgres_data:
   betterlytics_selfhost_clickhouse_data:
@@ -186,5 +141,3 @@ networks:
     name: betterlytics_clickhouse_network
   postgres_network:
     name: betterlytics_postgres_network
-  garage_network:
-    name: betterlytics_garage_network
