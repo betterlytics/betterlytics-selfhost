@@ -51,6 +51,7 @@ services:
       - ./base/proxy:/etc/nginx/templates:ro
       - ./base/supervisord.conf:/etc/supervisor/conf.d/betterlytics.conf:ro
       - ./base/derive.sh:/derive.sh:ro
+      - ./base/secrets-env.sh:/secrets-env.sh:ro
       - ./base/entrypoint.sh:/entrypoint.sh:ro
       - ./base/garage-config/garage.toml:/etc/garage.toml:ro
       - betterlytics_selfhost_letsencrypt_certs:/etc/letsencrypt
@@ -58,11 +59,41 @@ services:
       - betterlytics_selfhost_garage_data:/var/lib/garage
     entrypoint: ["/bin/sh", "/entrypoint.sh"]
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:80/"]
+      test:
+        [
+          "CMD-SHELL",
+          "curl -f http://localhost:80/ && curl -f http://127.0.0.1:3001/health",
+        ]
       interval: 30s
       timeout: 5s
       retries: 3
-      start_period: 30s
+      start_period: 120s
+      start_interval: 5s
+    depends_on:
+      betterlytics-init:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
+      clickhouse:
+        condition: service_healthy
+    networks:
+      - clickhouse_network
+      - postgres_network
+    logging: *default-logging
+
+  betterlytics-init:
+    image: ghcr.io/betterlytics/betterlytics-selfhost:latest
+    container_name: betterlytics-init
+    restart: "no"
+    entrypoint: ["/bin/sh", "/init-entrypoint.sh"]
+    env_file:
+      - ./base/.env.base
+    environment:
+      - SECRET_BASE
+    volumes:
+      - ./base/derive.sh:/derive.sh:ro
+      - ./base/secrets-env.sh:/secrets-env.sh:ro
+      - ./base/init-entrypoint.sh:/init-entrypoint.sh:ro
     depends_on:
       postgres:
         condition: service_healthy
