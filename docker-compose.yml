@@ -43,6 +43,7 @@ services:
       - ./base/entrypoint.sh:/entrypoint.sh:ro
       - betterlytics_selfhost_letsencrypt_certs:/etc/letsencrypt
       - betterlytics_selfhost_certbot_www:/var/www/certbot
+      - betterlytics_selfhost_geoip:/app/backend/assets/geoip
     entrypoint: ["/bin/sh", "/entrypoint.sh"]
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:80/"]
@@ -121,6 +122,7 @@ volumes:
   betterlytics_selfhost_clickhouse_users:
   betterlytics_selfhost_letsencrypt_certs:
   betterlytics_selfhost_certbot_www:
+  betterlytics_selfhost_geoip:
 
 networks:
   clickhouse_network:
