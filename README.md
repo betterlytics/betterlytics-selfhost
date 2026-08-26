@@ -37,6 +37,7 @@ Ports 80 and 443 must be accessible from the internet for ACME challenges and HT
 | `DOMAIN`                   | Domain where your instance is accessible (no protocol)   |         |
 | `ENABLE_UPTIME_MONITORING` | Enable Uptime Monitoring feature                         | `false` |
 | `SESSION_REPLAYS_ENABLED`  | Enable Session Replay                                    | `true`  |
+| `REPLAY_RETENTION_DAYS`    | Days to keep session replays, `-1` for indefinitely      | `60`    |
 | `HTTP_SCHEME`              | `http` or `https`, built-in Let's Encrypt when `https`   | `https` |
 | `SECRET_BASE`              | Single secret used to derive all passwords and auth keys |         |
 | `ADMIN_EMAIL`              | Admin account email                                      |         |
