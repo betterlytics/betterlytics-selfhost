@@ -55,7 +55,7 @@ Ports 80 and 443 must be accessible from the internet for ACME challenges and HT
 | `MAXMIND_LICENSE_KEY`      | MaxMind license key                                      |         |
 | `HTTP_PORT`                | Exposed HTTP port                                        |         |
 
-All database passwords, `NEXTAUTH_SECRET`, and `TOTP_SECRET_ENCRYPTION_KEY` are derived automatically from `SECRET_BASE`. You only need to set one secret.
+All database passwords, `AUTH_SECRET`, and `TOTP_SECRET_ENCRYPTION_KEY` are derived automatically from `SECRET_BASE`. You only need to set one secret.
 
 ### Behind a Reverse Proxy
 
