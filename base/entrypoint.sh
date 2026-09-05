@@ -31,6 +31,9 @@ NODE_ENV=production node scripts/run-migration.js
 echo "Running PostgreSQL migrations..."
 prisma migrate deploy --schema /app/initializer/prisma/schema.prisma
 
+echo "Running pg-boss migrations..."
+node scripts/migrate_pgboss.js
+
 echo "Running post-migration scripts..."
 node scripts/provision_roles.js
 
