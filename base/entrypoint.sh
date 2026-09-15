@@ -16,6 +16,7 @@ if [ -n "$SECRET_BASE" ]; then
     export POSTGRES_JOBQUEUE_RW_PASSWORD=$(derive_secret "postgres-jobqueue-rw" 32)
     export NEXTAUTH_SECRET=$(derive_secret "nextauth" 64)
     export TOTP_SECRET_ENCRYPTION_KEY=$(derive_secret "totp-encryption" 32)
+    export AUTH_SECRET=$(derive_secret "auth" 64)
 
     export POSTGRES_URL="postgresql://user:${POSTGRES_PASSWORD}@postgres:5432/dashboard?schema=public"
     export SITE_CONFIG_DATABASE_URL="postgresql://siteconfig_ro:${POSTGRES_SITECONFIG_RO_PASSWORD}@postgres:5432/dashboard"
