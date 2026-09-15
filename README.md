@@ -26,9 +26,11 @@ docker compose up -d
 
 ### Standalone (automatic HTTPS)
 
-`HTTP_SCHEME=https` is the default. The container will automatically provision TLS certificates via Let's Encrypt.
+`HTTP_SCHEME=https` is the default. Caddy inside the container obtains a Let's Encrypt certificate for `DOMAIN` on first start and renews it automatically. Certificates and the ACME account live in the `betterlytics_selfhost_caddy_data` volume.
 
-Ports 80 and 443 must be accessible from the internet for ACME challenges and HTTPS traffic. When using `setup.sh`, this is handled automatically, the script generates a `docker-compose.override.yml` that exposes port 443 and binds to `0.0.0.0`.
+Ports 80 and 443 must be reachable from the internet. `setup.sh` writes a `docker-compose.override.yml` that publishes 443 and binds `0.0.0.0`.
+
+**Upgrading from a certbot-based install:** `docker compose pull && docker compose up -d`. Caddy issues a fresh certificate on first boot. Do not re-run `setup.sh`: it regenerates `SECRET_BASE` and invalidates every derived database password.
 
 ## Upgrading
 
@@ -65,6 +67,8 @@ table. Before upgrading:
 | `DOMAIN`                   | Domain where your instance is accessible (no protocol)   |         |
 | `ENABLE_UPTIME_MONITORING` | Enable Uptime Monitoring feature                         | `false` |
 | `HTTP_SCHEME`              | `http` or `https`, built-in Let's Encrypt when `https`   | `https` |
+| `SSL_EMAIL`                | Optional email for the Let's Encrypt account             |         |
+| `ACME_CA`                  | Optional ACME directory URL (e.g. Let's Encrypt staging) | LE prod |
 | `SECRET_BASE`              | Single secret used to derive all passwords and auth keys |         |
 | `ADMIN_EMAIL`              | Admin account email                                      |         |
 | `ADMIN_PASSWORD`           | Admin account password                                   |         |
@@ -123,6 +127,8 @@ server {
     }
 }
 ```
+
+The forwarded headers above are what Caddy inside the container trusts from private-range peers, so visitor IPs and the original scheme reach the app.
 
 ## Requirements
 
