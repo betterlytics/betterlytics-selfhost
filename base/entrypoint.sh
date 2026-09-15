@@ -14,8 +14,6 @@ if [ -n "$SECRET_BASE" ]; then
     export POSTGRES_MONITORING_RO_PASSWORD=$(derive_secret "postgres-monitoring-ro" 32)
     export POSTGRES_SALTS_RW_PASSWORD=$(derive_secret "postgres-salts-rw" 32)
     export POSTGRES_JOBQUEUE_RW_PASSWORD=$(derive_secret "postgres-jobqueue-rw" 32)
-    export NEXTAUTH_SECRET=$(derive_secret "nextauth" 64)
-    export TOTP_SECRET_ENCRYPTION_KEY=$(derive_secret "totp-encryption" 32)
     export AUTH_SECRET=$(derive_secret "auth" 64)
 
     export POSTGRES_URL="postgresql://user:${POSTGRES_PASSWORD}@postgres:5432/dashboard?schema=public"
