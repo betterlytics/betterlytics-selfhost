@@ -26,7 +26,7 @@ docker compose up -d
 
 ### Standalone (automatic HTTPS)
 
-`HTTP_SCHEME=https` is the default. The container will automatically provision TLS certificates via Let's Encrypt.
+`HTTP_SCHEME=https` is the default. The container will automatically provision and renew TLS certificates via Let's Encrypt.
 
 Ports 80 and 443 must be accessible from the internet for ACME challenges and HTTPS traffic. When using `setup.sh`, this is handled automatically, the script generates a `docker-compose.override.yml` that exposes port 443 and binds to `0.0.0.0`.
 
@@ -67,6 +67,8 @@ table. Before upgrading:
 | `SESSION_REPLAYS_ENABLED`  | Enable Session Replay                                    | `true`  |
 | `REPLAY_RETENTION_DAYS`    | Days to keep session replays, `-1` for indefinitely      | `60`    |
 | `HTTP_SCHEME`              | `http` or `https`, built-in Let's Encrypt when `https`   | `https` |
+| `SSL_EMAIL`                | Optional email for the Let's Encrypt account             |         |
+| `ACME_CA`                  | Optional ACME directory URL (e.g. Let's Encrypt staging) |         |
 | `SECRET_BASE`              | Single secret used to derive all passwords and auth keys |         |
 | `ADMIN_EMAIL`              | Admin account email                                      |         |
 | `ADMIN_PASSWORD`           | Admin account password                                   |         |
