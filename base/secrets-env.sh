@@ -10,7 +10,8 @@ if [ -n "$SECRET_BASE" ]; then
     export POSTGRES_SITECONFIG_RO_PASSWORD=$(derive_secret "postgres-siteconfig-ro" 32)
     export POSTGRES_MONITORING_RO_PASSWORD=$(derive_secret "postgres-monitoring-ro" 32)
     export POSTGRES_SALTS_RW_PASSWORD=$(derive_secret "postgres-salts-rw" 32)
-    export AUTH_SECRET=$(derive_secret "nextauth" 64)
+    export POSTGRES_JOBQUEUE_RW_PASSWORD=$(derive_secret "postgres-jobqueue-rw" 32)
+    export AUTH_SECRET=$(derive_secret "auth" 64)
     export TOTP_SECRET_ENCRYPTION_KEY=$(derive_secret "totp-encryption" 32)
     export INTEGRATION_ENCRYPTION_KEY=$(derive_secret "integration-encryption" 32)
 
@@ -18,4 +19,5 @@ if [ -n "$SECRET_BASE" ]; then
     export SITE_CONFIG_DATABASE_URL="postgresql://siteconfig_ro:${POSTGRES_SITECONFIG_RO_PASSWORD}@postgres:5432/dashboard"
     export MONITORING_DATABASE_URL="postgresql://monitoring_ro:${POSTGRES_MONITORING_RO_PASSWORD}@postgres:5432/dashboard"
     export SALTS_DATABASE_URL="postgresql://salts_rw:${POSTGRES_SALTS_RW_PASSWORD}@postgres:5432/dashboard"
+    export JOB_QUEUE_DATABASE_URL="postgresql://jobqueue_rw:${POSTGRES_JOBQUEUE_RW_PASSWORD}@postgres:5432/dashboard"
 fi
