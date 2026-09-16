@@ -48,8 +48,6 @@ services:
       - betterlytics_selfhost_caddy_data:/data # certs + ACME account (XDG_DATA_HOME)
     entrypoint: ["/bin/sh", "/entrypoint.sh"]
     healthcheck:
-      # https: the auto :80 server 308s every Host and a no-SNI handshake fails, so resolve the
-      # real domain to loopback. http: :80 is the app site.
       test:
         - CMD-SHELL
         - >-

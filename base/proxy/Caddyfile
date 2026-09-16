@@ -1,16 +1,11 @@
 {
 	order rate_limit before handle
-	# Whole directive, not `email {$SSL_EMAIL}`: an empty placeholder leaves `email` with no
-	# argument and the file fails to parse. Entrypoint exports "" or "email <addr>".
+	# Whole directive so an unset SSL_EMAIL leaves no bare `email` line.
 	{$CADDY_EMAIL_DIRECTIVE}
 	acme_ca {$ACME_CA:https://acme-v02.api.letsencrypt.org/directory}
 	servers {
-		# Own-proxy mode: the peer is the user's reverse proxy on the docker bridge or the host.
-		# Caddy replaces X-Forwarded-* from untrusted peers, so without this the backend would
-		# fingerprint visitors by the proxy's address. Public peers are never in these ranges.
 		trusted_proxies static private_ranges
 		trusted_proxies_strict
-		# Caddy defaults are unlimited; nginx had 60s.
 		timeouts {
 			read_header 10s
 			read_body 60s
@@ -21,8 +16,7 @@
 
 import snippets/*.caddy
 
-# CADDY_SITE is ":80" (http modes: own proxy, local) or the bare DOMAIN (https mode, Caddy
-# owns :80 for HTTP-01 and the redirect and :443 for the app).
+# ":80" for HTTP_SCHEME=http, the bare DOMAIN for https.
 {$CADDY_SITE} {
 	import http01_tls
 	import app_routes

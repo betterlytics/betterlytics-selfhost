@@ -43,9 +43,9 @@ node scripts/migrate_pgboss.js
 echo "Running post-migration scripts..."
 node scripts/provision_roles.js
 
-# A checkout on an image without Caddy: fail readable instead of a supervisord restart loop.
+# Image predates Caddy: follow the upgrade guide instead of looping in supervisord.
 if [ ! -x /usr/bin/caddy ]; then
-    echo "This configuration requires a Betterlytics image with Caddy. Run: docker compose pull"
+    echo "This configuration requires a Betterlytics image with Caddy. Follow the upgrade guide."
     exit 1
 fi
 
