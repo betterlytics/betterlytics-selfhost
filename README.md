@@ -84,7 +84,7 @@ table. Before upgrading:
 | `PUSHOVER_APP_TOKEN`       | Pushover app token for uptime alert integrations         |         |
 | `HTTP_PORT`                | Exposed HTTP port                                        |         |
 
-All database passwords, `NEXTAUTH_SECRET`, and `TOTP_SECRET_ENCRYPTION_KEY` are derived automatically from `SECRET_BASE`. You only need to set one secret.
+All database passwords and auth secrets are derived automatically from `SECRET_BASE`. You only need to set one secret.
 
 ### Behind a Reverse Proxy
 
