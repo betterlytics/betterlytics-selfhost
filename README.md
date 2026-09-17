@@ -64,6 +64,8 @@ table. Before upgrading:
 | -------------------------- | -------------------------------------------------------- | ------- |
 | `DOMAIN`                   | Domain where your instance is accessible (no protocol)   |         |
 | `ENABLE_UPTIME_MONITORING` | Enable Uptime Monitoring feature                         | `false` |
+| `SESSION_REPLAYS_ENABLED`  | Enable Session Replay                                    | `true`  |
+| `REPLAY_RETENTION_DAYS`    | Days to keep session replays, `-1` for indefinitely      | `60`    |
 | `HTTP_SCHEME`              | `http` or `https`, built-in Let's Encrypt when `https`   | `https` |
 | `SSL_EMAIL`                | Optional email for the Let's Encrypt account             |         |
 | `ACME_CA`                  | Optional ACME directory URL (e.g. Let's Encrypt staging) |         |
