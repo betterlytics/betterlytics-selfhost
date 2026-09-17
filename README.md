@@ -26,9 +26,37 @@ docker compose up -d
 
 ### Standalone (automatic HTTPS)
 
-`HTTP_SCHEME=https` is the default. The container will automatically provision TLS certificates via Let's Encrypt.
+`HTTP_SCHEME=https` is the default. The container will automatically provision and renew TLS certificates via Let's Encrypt.
 
 Ports 80 and 443 must be accessible from the internet for ACME challenges and HTTPS traffic. When using `setup.sh`, this is handled automatically, the script generates a `docker-compose.override.yml` that exposes port 443 and binds to `0.0.0.0`.
+
+## Upgrading
+
+Run the update script:
+
+```bash
+./update.sh
+```
+
+Or manually — always update this repository BEFORE pulling a new image, as the
+image and the config files in this repo move in lockstep:
+
+```bash
+git pull
+docker compose pull
+docker compose up -d --wait
+```
+
+### Upgrading from v1.3.5 or earlier
+
+This release includes one-time ClickHouse migrations that rewrite the events
+table. Before upgrading:
+
+- Ensure free disk space of at least 2–3× the size of your ClickHouse data
+  volume (the events table is rewritten twice; space is reclaimed at the end).
+- Expect a long first boot on large installations. Do not interrupt the
+  container while migrations run.
+- Back up your ClickHouse and Postgres volumes first.
 
 ## Configuration Reference
 
@@ -36,7 +64,11 @@ Ports 80 and 443 must be accessible from the internet for ACME challenges and HT
 | -------------------------- | -------------------------------------------------------- | ------- |
 | `DOMAIN`                   | Domain where your instance is accessible (no protocol)   |         |
 | `ENABLE_UPTIME_MONITORING` | Enable Uptime Monitoring feature                         | `false` |
+| `SESSION_REPLAYS_ENABLED`  | Enable Session Replay                                    | `true`  |
+| `REPLAY_RETENTION_DAYS`    | Days to keep session replays, `-1` for indefinitely      | `60`    |
 | `HTTP_SCHEME`              | `http` or `https`, built-in Let's Encrypt when `https`   | `https` |
+| `SSL_EMAIL`                | Optional email for the Let's Encrypt account             |         |
+| `ACME_CA`                  | Optional ACME directory URL (e.g. Let's Encrypt staging) |         |
 | `SECRET_BASE`              | Single secret used to derive all passwords and auth keys |         |
 | `ADMIN_EMAIL`              | Admin account email                                      |         |
 | `ADMIN_PASSWORD`           | Admin account password                                   |         |
@@ -51,9 +83,12 @@ Ports 80 and 443 must be accessible from the internet for ACME challenges and HT
 | `ENABLE_GEOLOCATION`       | Enable IP geolocation (requires MaxMind)                 | `false` |
 | `MAXMIND_ACCOUNT_ID`       | MaxMind account ID                                       |         |
 | `MAXMIND_LICENSE_KEY`      | MaxMind license key                                      |         |
+| `GEOLOCATION_MODE`         | `country` (~9 MB DB) or `full` for city/region (~61 MB)  | `country` |
+| `BACKGROUND_JOBS_ENABLED`  | Email reports and data-retention cleanup                 | `true`  |
+| `PUSHOVER_APP_TOKEN`       | Pushover app token for uptime alert integrations         |         |
 | `HTTP_PORT`                | Exposed HTTP port                                        |         |
 
-All database passwords, `NEXTAUTH_SECRET`, and `TOTP_SECRET_ENCRYPTION_KEY` are derived automatically from `SECRET_BASE`. You only need to set one secret.
+All database passwords and auth secrets are derived automatically from `SECRET_BASE`. You only need to set one secret.
 
 ### Behind a Reverse Proxy
 

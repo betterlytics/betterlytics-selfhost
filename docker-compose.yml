@@ -17,6 +17,7 @@ services:
       - BIND_ADDRESS
       - FORCE_HTTP_SCHEME
       - SSL_EMAIL
+      - ACME_CA # optional; Let's Encrypt staging for tests
       - SECRET_BASE
       - ADMIN_EMAIL
       - ADMIN_PASSWORD
@@ -32,21 +33,39 @@ services:
       - ENABLE_GEOLOCATION
       - MAXMIND_ACCOUNT_ID
       - MAXMIND_LICENSE_KEY
+      - GEOLOCATION_MODE
+      - BACKGROUND_JOBS_ENABLED=${BACKGROUND_JOBS_ENABLED:-true}
+      - PUSHOVER_APP_TOKEN
+      - REPLAY_STORAGE
+      - REPLAY_RETENTION_DAYS
+      - S3_ENABLED
+      - S3_BUCKET
+      - S3_REGION
+      - S3_ENDPOINT
+      - S3_ACCESS_KEY_ID
+      - S3_SECRET_ACCESS_KEY
+      - S3_FORCE_PATH_STYLE
     restart: unless-stopped
     container_name: betterlytics-selfhost
     ports:
       - "${BIND_ADDRESS:-127.0.0.1}:${HTTP_PORT:-5566}:80"
     volumes:
-      - ./base/proxy:/etc/nginx/templates:ro
+      - ./base/proxy:/etc/caddy:ro
       - ./base/supervisord.conf:/etc/supervisor/conf.d/betterlytics.conf:ro
       - ./base/derive.sh:/derive.sh:ro
       - ./base/entrypoint.sh:/entrypoint.sh:ro
-      - betterlytics_selfhost_letsencrypt_certs:/etc/letsencrypt
-      - betterlytics_selfhost_certbot_www:/var/www/certbot
+      - betterlytics_selfhost_caddy_data:/data # certs + ACME account (XDG_DATA_HOME)
       - betterlytics_selfhost_geoip:/app/backend/assets/geoip
     entrypoint: ["/bin/sh", "/entrypoint.sh"]
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:80/"]
+      test:
+        - CMD-SHELL
+        - >-
+          if [ "$$HTTP_SCHEME" = "https" ]; then
+            curl -fsk -o /dev/null --resolve "$$DOMAIN:443:127.0.0.1" "https://$$DOMAIN/";
+          else
+            curl -fs -o /dev/null http://localhost/;
+          fi
       interval: 30s
       timeout: 5s
       retries: 3
@@ -120,8 +139,7 @@ volumes:
   betterlytics_selfhost_postgres_data:
   betterlytics_selfhost_clickhouse_data:
   betterlytics_selfhost_clickhouse_users:
-  betterlytics_selfhost_letsencrypt_certs:
-  betterlytics_selfhost_certbot_www:
+  betterlytics_selfhost_caddy_data:
   betterlytics_selfhost_geoip:
 
 networks:

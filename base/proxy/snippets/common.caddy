@@ -1,0 +1,27 @@
+(security_headers) {
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		X-Frame-Options "SAMEORIGIN"
+		Content-Security-Policy "frame-ancestors 'self'"
+		-Server
+	}
+}
+
+# Usage: import app_proxy <upstream> <max body size>
+# Caddy already sets X-Forwarded-For (append), -Proto, -Host and passes Host through.
+# {client_ip} is the XFF-resolved client behind a trusted own proxy, the peer otherwise.
+# CF-Connecting-IP and True-Client-IP pass through untouched: a CDN's peer is public, so
+# {client_ip} would be the edge, and backend/src/ip_parser ranks those headers first.
+(app_proxy) {
+	request_body {
+		max_size {args[1]}
+	}
+	reverse_proxy {args[0]} {
+		header_up X-Real-IP {client_ip}
+		transport http {
+			response_header_timeout 60s
+		}
+	}
+}
