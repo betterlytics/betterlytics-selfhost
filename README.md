@@ -63,7 +63,6 @@ table. Before upgrading:
 | Variable                   | Description                                              | Default |
 | -------------------------- | -------------------------------------------------------- | ------- |
 | `DOMAIN`                   | Domain where your instance is accessible (no protocol)   |         |
-| `ENABLE_UPTIME_MONITORING` | Enable Uptime Monitoring feature                         | `false` |
 | `SESSION_REPLAYS_ENABLED`  | Enable Session Replay                                    | `true`  |
 | `REPLAY_RETENTION_DAYS`    | Days to keep session replays, `-1` for indefinitely      | `60`    |
 | `HTTP_SCHEME`              | `http` or `https`, built-in Let's Encrypt when `https`   | `https` |
@@ -117,6 +116,40 @@ server {
 
     ssl_certificate     /etc/letsencrypt/live/analytics.example.com/fullchain.pem;
     ssl_certificate_key /etc/letsencrypt/live/analytics.example.com/privkey.pem;
+
+    location / {
+        proxy_pass http://127.0.0.1:5566;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+```
+
+### Status page custom domains
+
+Published status pages are served at `https://<DOMAIN>/status/<slug>`. A status page can also get its own domain, for example `status.acme.com`.
+
+**Standalone (`HTTP_SCHEME=https`):** enter the domain in the status page settings and add a CNAME record pointing it to your `DOMAIN`. The certificate is issued automatically on the first visit. Allow up to two minutes after publishing. No `.env` change and no restart needed.
+
+**Behind a reverse proxy (`HTTP_SCHEME=http`):** your proxy terminates TLS for the extra hostname and forwards it to the same port with the `Host` header unchanged. Betterlytics picks the status page from `Host`. Example with **Caddy**:
+
+```
+status.acme.com {
+    reverse_proxy 127.0.0.1:5566
+}
+```
+
+Example with **NGINX**:
+
+```nginx
+server {
+    listen 443 ssl;
+    server_name status.acme.com;
+
+    ssl_certificate     /etc/letsencrypt/live/status.acme.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/status.acme.com/privkey.pem;
 
     location / {
         proxy_pass http://127.0.0.1:5566;
