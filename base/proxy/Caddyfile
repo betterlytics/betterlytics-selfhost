@@ -1,0 +1,23 @@
+{
+	order rate_limit before handle
+	# Whole directive so an unset SSL_EMAIL leaves no bare `email` line.
+	{$CADDY_EMAIL_DIRECTIVE}
+	acme_ca {$ACME_CA:https://acme-v02.api.letsencrypt.org/directory}
+	servers {
+		trusted_proxies static private_ranges
+		trusted_proxies_strict
+		timeouts {
+			read_header 10s
+			read_body 60s
+			idle 5m
+		}
+	}
+}
+
+import snippets/*.caddy
+
+# ":80" for HTTP_SCHEME=http, the bare DOMAIN for https.
+{$CADDY_SITE} {
+	import http01_tls
+	import app_routes
+}
