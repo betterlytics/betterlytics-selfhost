@@ -12,6 +12,10 @@
 			idle 5m
 		}
 	}
+	# Inert unless a site uses `tls { on_demand }`. Loopback only, so the token never leaves the container.
+	on_demand_tls {
+		ask http://127.0.0.1:3000/api/status-page/ask?token={$STATUS_PAGE_ASK_SECRET}
+	}
 }
 
 import snippets/*.caddy
@@ -21,3 +25,6 @@ import snippets/*.caddy
 	import http01_tls
 	import app_routes
 }
+
+# sites/status.caddy or sites/none.caddy, chosen in entrypoint.sh
+import {$CADDY_STATUS_SITE}

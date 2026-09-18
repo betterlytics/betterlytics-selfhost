@@ -316,7 +316,6 @@ ADMIN_PASSWORD="${ADMIN_PASSWORD}"
 
 # --- General ---
 DEFAULT_LANGUAGE="en"
-ENABLE_UPTIME_MONITORING="false"
 
 # --- Geolocation ---
 ENABLE_GEOLOCATION="false"

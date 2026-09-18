@@ -17,6 +17,8 @@ if [ -n "$SECRET_BASE" ]; then
     export POSTGRES_JOBQUEUE_RW_PASSWORD=$(derive_secret "postgres-jobqueue-rw" 32)
     export AUTH_SECRET=$(derive_secret "auth" 64)
     export INTEGRATION_ENCRYPTION_KEY=$(derive_secret "integration-encryption" 32)
+    # The dashboard refuses to boot when both status flags are on and this is empty.
+    export STATUS_PAGE_ASK_SECRET=$(derive_secret "status-page-ask" 32)
 
     export POSTGRES_URL="postgresql://user:${POSTGRES_PASSWORD}@postgres:5432/dashboard?schema=public"
     export SITE_CONFIG_DATABASE_URL="postgresql://siteconfig_ro:${POSTGRES_SITECONFIG_RO_PASSWORD}@postgres:5432/dashboard"
@@ -55,6 +57,12 @@ if [ "$HTTP_SCHEME" = "https" ]; then
 else
     echo "Configuring Caddy without TLS..."
     export CADDY_SITE=":80"
+fi
+# Relative to /etc/caddy.
+export CADDY_STATUS_SITE="sites/none.caddy"
+if [ "$HTTP_SCHEME" = "https" ]; then
+    echo "Enabling on-demand TLS for custom status page domains..."
+    export CADDY_STATUS_SITE="sites/status.caddy"
 fi
 export CADDY_EMAIL_DIRECTIVE=""
 if [ -n "$SSL_EMAIL" ]; then
