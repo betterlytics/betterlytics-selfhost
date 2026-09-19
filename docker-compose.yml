@@ -15,6 +15,7 @@ services:
       - HTTP_PORT
       - HTTPS_PORT
       - BIND_ADDRESS
+      - TRUSTED_PROXIES # optional; extra proxy IPs/CIDRs whose X-Forwarded-For Caddy trusts
       - FORCE_HTTP_SCHEME
       - SSL_EMAIL
       - ACME_CA # optional; Let's Encrypt staging for tests
