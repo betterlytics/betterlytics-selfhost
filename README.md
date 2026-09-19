@@ -19,14 +19,16 @@ Or copy `.env.example` to `.env` and fill in the values manually.
 ### 2. Deploy
 
 ```bash
-docker compose up -d
+docker compose up -d --wait
 ```
 
 ## Deployment Modes
 
-### Standalone (automatic HTTPS)
+### Standalone (automatic HTTPS, recommended for a public server)
 
-`HTTP_SCHEME=https` is the default. The container will automatically provision and renew TLS certificates via Let's Encrypt.
+Set `HTTP_SCHEME=https`; `setup.sh` selects this mode by default. The container will automatically provision and renew TLS certificates via Let's Encrypt.
+`HTTP_PORT` must be `80` and port 443 must be mapped; the container refuses to start otherwise.
+Custom status-page domains get their certificate on first visit. If a visitor sees a TLS error, `docker compose logs betterlytics-selfhost | grep permission` shows the hostname and the status the `ask` endpoint answered (`404` not published or unknown, `403` reserved name, `429` lookup ceiling).
 
 Ports 80 and 443 must be accessible from the internet for ACME challenges and HTTPS traffic. When using `setup.sh`, this is handled automatically, the script generates a `docker-compose.override.yml` that exposes port 443 and binds to `0.0.0.0`.
 
@@ -65,7 +67,7 @@ table. Before upgrading:
 | `DOMAIN`                   | Domain where your instance is accessible (no protocol)   |         |
 | `SESSION_REPLAYS_ENABLED`  | Enable Session Replay                                    | `true`  |
 | `REPLAY_RETENTION_DAYS`    | Days to keep session replays, `-1` for indefinitely      | `60`    |
-| `HTTP_SCHEME`              | `http` or `https`, built-in Let's Encrypt when `https`   | `https` |
+| `HTTP_SCHEME`              | `http` or `https`, built-in Let's Encrypt when `https`   | `http`  |
 | `SSL_EMAIL`                | Optional email for the Let's Encrypt account             |         |
 | `ACME_CA`                  | Optional ACME directory URL (e.g. Let's Encrypt staging) |         |
 | `SECRET_BASE`              | Single secret used to derive all passwords and auth keys |         |
@@ -85,7 +87,10 @@ table. Before upgrading:
 | `GEOLOCATION_MODE`         | `country` (~9 MB DB) or `full` for city/region (~61 MB)  | `country` |
 | `BACKGROUND_JOBS_ENABLED`  | Email reports and data-retention cleanup                 | `true`  |
 | `PUSHOVER_APP_TOKEN`       | Pushover app token for uptime alert integrations         |         |
-| `HTTP_PORT`                | Exposed HTTP port                                        |         |
+| `HTTP_PORT`                | Exposed HTTP port, must be `80` when `HTTP_SCHEME=https` | `5566`  |
+| `HTTPS_PORT`               | Exposed HTTPS port (mapped by `setup.sh` Standalone)     | `443`   |
+| `BIND_ADDRESS`             | Host address to bind the exposed ports to                | `127.0.0.1` |
+| `TRUSTED_PROXIES`          | Extra proxy IPs/CIDRs whose `X-Forwarded-For` is trusted |         |
 
 All database passwords and auth secrets are derived automatically from `SECRET_BASE`. You only need to set one secret.
 
@@ -99,7 +104,9 @@ BIND_ADDRESS=127.0.0.1
 HTTP_PORT=5566
 ```
 
-Then point your reverse proxy to that port. Example with **Caddy**:
+Then point your reverse proxy to that port. Proxies on the same host or a private network are trusted automatically. If your proxy connects from a public address, list it in `TRUSTED_PROXIES`, otherwise every visitor is recorded with the proxy's IP. To check, compare `request.remote_ip` and `request.client_ip` in `docker compose logs betterlytics-selfhost`.
+
+Example with **Caddy**:
 
 ```
 analytics.example.com {

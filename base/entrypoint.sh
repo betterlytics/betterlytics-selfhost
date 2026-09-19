@@ -1,6 +1,12 @@
 #!/bin/bash
 set -e
 
+if [ "$HTTP_SCHEME" = "https" ] && [ "$HTTP_PORT" != "80" ]; then
+    echo "HTTP_SCHEME=https requires HTTP_PORT=80 (Let's Encrypt HTTP-01 validation) and a host mapping of port 443."
+    echo "Set HTTP_PORT=80 and HTTPS_PORT=443 in .env and add the 443 mapping (setup.sh 'Standalone' writes both), or use HTTP_SCHEME=http behind your own reverse proxy."
+    exit 1
+fi
+
 export PATH="/app/initializer/node_modules/.bin:$PATH"
 
 if [ -n "$SECRET_BASE" ]; then
