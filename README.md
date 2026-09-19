@@ -32,20 +32,16 @@ Ports 80 and 443 must be accessible from the internet for ACME challenges and HT
 
 ## Upgrading
 
-Run the update script:
-
-```bash
-./update.sh
-```
-
-Or manually — always update this repository BEFORE pulling a new image, as the
-image and the config files in this repo move in lockstep:
+Each release bumps the image version in `docker-compose.yml`, so updating this
+repository is what upgrades your instance:
 
 ```bash
 git pull
-docker compose pull
 docker compose up -d --wait
 ```
+
+Compose pulls the new image on its own. Read the release notes first for
+version-specific steps such as backups or disk space.
 
 ### Upgrading from v1.3.5 or earlier
 
