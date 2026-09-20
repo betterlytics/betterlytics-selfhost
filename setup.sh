@@ -236,7 +236,7 @@ if [ "$DEPLOY_MODE" = "standalone" ]; then
 elif [ "$DEPLOY_MODE" = "basic" ]; then
     HTTP_SCHEME="http"
     HTTPS_PORT=443
-    BIND_ADDRESS="0.0.0.0"
+    BIND_ADDRESS="127.0.0.1"
 
     while true; do
         printf "  Domain name (e.g. analytics.example.com): "
