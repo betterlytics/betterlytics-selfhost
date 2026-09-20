@@ -130,6 +130,8 @@ server {
 }
 ```
 
+Serving a status page on its own domain? See [Custom status page domains](https://betterlytics.io/docs/installation/self-hosting#custom-status-page-domains) in the Self-Hosting Guide.
+
 ## Requirements
 
 - Docker and Docker Compose
