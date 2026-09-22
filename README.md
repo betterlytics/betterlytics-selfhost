@@ -53,7 +53,7 @@ table. Before upgrading:
 - Ensure free disk space of at least 2–3× the size of your ClickHouse data
   volume (the events table is rewritten twice; space is reclaimed at the end).
 - Expect a long first boot on large installations. Do not interrupt the
-  container while migrations run.
+  `betterlytics-init` container while migrations run.
 - Back up your ClickHouse and Postgres volumes first.
 
 ## Configuration Reference
