@@ -88,7 +88,7 @@ services:
   # One-shot: runs migrations and role provisioning, then exits.
   # The app service starts only after this exits 0; restarting the app does not re-run it.
   betterlytics-init:
-    image: ghcr.io/betterlytics/betterlytics-selfhost:vX.Y.Z
+    image: ghcr.io/betterlytics/betterlytics-selfhost:test-a7ddd38
     container_name: betterlytics-init
     restart: "no"
     env_file:
