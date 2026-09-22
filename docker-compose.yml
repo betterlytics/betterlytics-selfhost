@@ -6,7 +6,7 @@ x-logging: &default-logging
 
 services:
   betterlytics-selfhost:
-    image: ghcr.io/betterlytics/betterlytics-selfhost:vX.Y.Z
+    image: ghcr.io/betterlytics/betterlytics-selfhost:test-a7ddd38
     env_file:
       - ./base/.env.base
     environment:
