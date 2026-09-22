@@ -22,16 +22,6 @@ Or copy `.env.example` to `.env` and fill in the values manually.
 docker compose up -d --wait
 ```
 
-### What `up` does
-
-Compose starts the stack in order:
-
-1. `betterlytics-postgres` and `betterlytics-clickhouse` come up and pass their healthchecks.
-2. `betterlytics-init` runs the database migrations and role provisioning, then exits. It is a one-shot service, so `docker compose ps -a` shows it as `Exited (0)` afterwards.
-3. `betterlytics-selfhost` starts only after `betterlytics-init` exited with code 0. Its healthcheck probes both the web front and the backend, so `--wait` returns once the instance is actually serving.
-
-If a migration fails, `betterlytics-init` exits non-zero and the app container is never started. Run `docker compose logs betterlytics-init` to see why, then `docker compose up -d --wait` again to retry. Restarting the app container on its own does not re-run migrations.
-
 ## Deployment Modes
 
 ### Standalone (automatic HTTPS, recommended for a public server)
