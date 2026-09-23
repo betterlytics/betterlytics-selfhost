@@ -167,20 +167,16 @@ menu_select() {
 
 # --- Pre-flight check ---
 
-if [ -f "$ENV_FILE" ]; then
+if [ -e "$ENV_FILE" ]; then
     echo ""
-    echo "  A .env file already exists. (Use ▲/▼ to select, Enter to confirm)"
+    echo "  Setup is for first-time installation only."
+    echo "  Existing configuration found; nothing was changed."
+    echo "  Replacing this configuration can break your existing installation."
     echo ""
-
-    menu_select \
-        "Cancel"    "Keep the current .env and exit" \
-        "Overwrite" "Replace the existing configuration"
-
-    if [ "$MENU_RESULT" -eq 0 ]; then
-        echo ""
-        echo "  Aborted."
-        exit 0
-    fi
+    echo "  To upgrade, follow the Self-Hosting Guide:"
+    echo "  https://betterlytics.io/docs/installation/self-hosting"
+    echo ""
+    exit 1
 fi
 
 # =============================================
