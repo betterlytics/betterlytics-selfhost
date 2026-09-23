@@ -169,12 +169,11 @@ menu_select() {
 
 if [ -e "$ENV_FILE" ]; then
     echo ""
-    echo "  A .env file already exists. Setup stopped without changing anything."
+    echo "  Setup is for first-time installation only."
+    echo "  Existing configuration found; nothing was changed."
+    echo "  Replacing this configuration can break your existing installation."
     echo ""
-    echo "  setup.sh is only for first-time installation. Keep your existing .env:"
-    echo "  its SECRET_BASE is required by your existing installation."
-    echo ""
-    echo "  To upgrade, follow the upgrade steps in the Self-Hosting Guide:"
+    echo "  To upgrade, follow the Self-Hosting Guide:"
     echo "  https://betterlytics.io/docs/installation/self-hosting"
     echo ""
     exit 1
