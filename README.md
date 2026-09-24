@@ -22,6 +22,10 @@ Or copy `.env.example` to `.env` and fill in the values manually.
 docker compose up -d --wait
 ```
 
+### 3. Create the first account
+
+Open your instance URL in a browser and create your account.
+
 ## Deployment Modes
 
 ### Standalone (automatic HTTPS, recommended for a public server)
@@ -67,8 +71,6 @@ table. Before upgrading:
 | `SSL_EMAIL`                | Optional email for the Let's Encrypt account             |         |
 | `ACME_CA`                  | Optional ACME directory URL (e.g. Let's Encrypt staging) |         |
 | `SECRET_BASE`              | Single secret used to derive all passwords and auth keys |         |
-| `ADMIN_EMAIL`              | Admin account email                                      |         |
-| `ADMIN_PASSWORD`           | Admin account password                                   |         |
 | `DEFAULT_LANGUAGE`         | Default UI language                                      | `en`    |
 | `ENABLE_EMAILS`            | Enable sending emails                                    | `false` |
 | `MAILER_SEND_API_TOKEN`    | MailerSend API token (no SMTP config needed if set)      |         |

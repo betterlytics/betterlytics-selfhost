@@ -20,8 +20,6 @@ services:
       - SSL_EMAIL
       - ACME_CA # optional; Let's Encrypt staging for tests
       - SECRET_BASE
-      - ADMIN_EMAIL
-      - ADMIN_PASSWORD
       - DEFAULT_LANGUAGE
       - ENABLE_EMAILS
       - MAILER_SEND_API_TOKEN
