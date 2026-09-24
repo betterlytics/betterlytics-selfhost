@@ -3,6 +3,24 @@
 # The app container starts only after this exits 0.
 set -e
 
+# APP_VERSION is baked into images built from a release tag; older images lack it.
+if [ -z "$APP_VERSION" ]; then
+    if [ ! -x /usr/bin/caddy ]; then
+        echo "This configuration requires a Betterlytics image with Caddy. Follow the upgrade guide."
+        exit 1
+    fi
+elif [ "$APP_VERSION" != "dev" ] && [ "$SKIP_VERSION_CHECK" != "true" ] && [ "$APP_VERSION" != "$BETTERLYTICS_VERSION" ]; then
+    echo "Configuration/image version mismatch."
+    echo "  betterlytics-selfhost repo: $BETTERLYTICS_VERSION"
+    echo "  image:                      $APP_VERSION"
+    if [ "$(printf '%s\n%s\n' "$BETTERLYTICS_VERSION" "$APP_VERSION" | sort -V | head -n1)" = "$BETTERLYTICS_VERSION" ]; then
+        echo "The repo is older: run \`git pull\` in betterlytics-selfhost, then \`docker compose up -d --wait\`."
+    else
+        echo "The image is older: check docker-compose.override.yml for an image override, or run \`docker compose pull\`."
+    fi
+    exit 1
+fi
+
 export PATH="/app/initializer/node_modules/.bin:$PATH"
 . /secrets-env.sh
 
