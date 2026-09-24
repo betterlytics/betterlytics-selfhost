@@ -4,9 +4,11 @@ x-logging: &default-logging
     max-size: "10m"
     max-file: "5"
 
+x-betterlytics-image: &betterlytics-image ghcr.io/betterlytics/betterlytics-selfhost:vX.Y.Z
+
 services:
   betterlytics-selfhost:
-    image: ghcr.io/betterlytics/betterlytics-selfhost:vX.Y.Z
+    image: *betterlytics-image
     env_file:
       - ./base/.env.base
     environment:
@@ -86,13 +88,14 @@ services:
   # One-shot: runs migrations and role provisioning, then exits.
   # The app service starts only after this exits 0; restarting the app does not re-run it.
   betterlytics-init:
-    image: ghcr.io/betterlytics/betterlytics-selfhost:vX.Y.Z
+    image: *betterlytics-image
     container_name: betterlytics-init
     restart: "no"
     env_file:
       - ./base/.env.base
     environment:
       - SECRET_BASE
+      - SKIP_VERSION_CHECK
       - REPLAY_STORAGE
       - REPLAY_RETENTION_DAYS # ClickHouse replay TTL is set during migration
     volumes:
