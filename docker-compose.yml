@@ -4,7 +4,6 @@ x-logging: &default-logging
     max-size: "10m"
     max-file: "5"
 
-# Keep in sync with BETTERLYTICS_VERSION in base/.env.base (checked in CI).
 x-betterlytics-image: &betterlytics-image ghcr.io/betterlytics/betterlytics-selfhost:vX.Y.Z
 
 services:

@@ -45,23 +45,6 @@ docker compose up -d --wait
 Compose pulls the new image on its own. Read the release notes first for
 version-specific steps such as backups or disk space.
 
-### Version mismatch on boot
-
-`betterlytics-init` checks that this repository and the image are on the same
-version before running migrations. If they differ, it exits with:
-
-```
-Configuration/image version mismatch.
-  betterlytics-selfhost repo: v1.4.9
-  image:                      v1.5.0
-```
-
-- Repo older than the image: run `git pull`, then `docker compose up -d --wait`.
-- Image older than the repo: check `docker-compose.override.yml` for an `image:`
-  override, or run `docker compose pull`.
-
-If you run a custom image on purpose, set `SKIP_VERSION_CHECK=true` in `.env`.
-
 ### Upgrading from v1.3.5 or earlier
 
 This release includes one-time ClickHouse migrations that rewrite the events
