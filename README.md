@@ -24,9 +24,7 @@ docker compose up -d --wait
 
 ### 3. Create the first account
 
-Open `/signup` on your instance in a browser, for example `https://analytics.example.com/signup` (`setup.sh` prints the exact URL), and create an account. On a fresh install the first account becomes the instance admin, even though open registration is disabled. Create it before sharing the URL, since until then anyone who can reach the instance can claim it.
-
-Once an account exists, sign in at `/signin`; `/signup` only accepts invited users. `setup.sh` never creates, changes, or resets accounts.
+Open your instance URL in a browser and create your account.
 
 ## Deployment Modes
 
