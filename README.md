@@ -136,7 +136,7 @@ Serving a status page on its own domain? See [Custom status page domains](https:
 
 ## Requirements
 
-- Docker and Docker Compose
+- Docker Engine 25+ and Docker Compose v2.24.1+ ([details](https://betterlytics.io/docs/installation/self-hosting#requirements))
 - A domain name pointed to your server
 - Ports 80/443 open (standalone mode) or a reverse proxy configured
 
