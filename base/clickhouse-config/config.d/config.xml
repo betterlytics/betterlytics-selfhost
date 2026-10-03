@@ -51,6 +51,10 @@
 
   <timezone>UTC</timezone>
 
+  <send_crash_reports>
+    <enabled>false</enabled>
+  </send_crash_reports>
+
   <!-- User settings -->
   <user_directories>
     <local_directory>
