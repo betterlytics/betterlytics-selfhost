@@ -45,6 +45,9 @@ services:
       - S3_ACCESS_KEY_ID
       - S3_SECRET_ACCESS_KEY
       - S3_FORCE_PATH_STYLE
+      - ALLOW_PRIVATE_TARGETS=${ALLOW_PRIVATE_TARGETS:-true}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     restart: unless-stopped
     container_name: betterlytics-selfhost
     ports:
