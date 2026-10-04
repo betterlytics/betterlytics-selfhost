@@ -71,7 +71,6 @@ table. Before upgrading:
 | `SSL_EMAIL`                | Optional email for the Let's Encrypt account             |         |
 | `ACME_CA`                  | Optional ACME directory URL (e.g. Let's Encrypt staging) |         |
 | `SECRET_BASE`              | Single secret used to derive all passwords and auth keys |         |
-| `DEFAULT_LANGUAGE`         | Default UI language                                      | `en`    |
 | `ENABLE_EMAILS`            | Enable sending emails                                    | `false` |
 | `MAILER_SEND_API_TOKEN`    | MailerSend API token (no SMTP server config needed if set) |       |
 | `SMTP_HOST`                | SMTP server hostname                                     |         |
@@ -83,7 +82,10 @@ table. Before upgrading:
 | `MAXMIND_ACCOUNT_ID`       | MaxMind account ID                                       |         |
 | `MAXMIND_LICENSE_KEY`      | MaxMind license key                                      |         |
 | `GEOLOCATION_MODE`         | `country` (~9 MB DB) or `full` for city/region (~61 MB)  | `country` |
-| `BACKGROUND_JOBS_ENABLED`  | Email reports and data-retention cleanup                 | `true`  |
+| `ENABLE_ASN_LOOKUP`        | Visitor network (ASN) lookup for bot detection, needs the MaxMind credentials | `false` |
+| `BACKGROUND_JOBS_ENABLED`  | Background worker: all outgoing email and data-retention cleanup; `false` stops both | `true`  |
+| `PUBLIC_ENABLE_FAVICON_FETCHING` | Fetch site icons from DuckDuckGo (server-side); `false` stops these requests | `true`  |
+| `LOG_LEVEL`                | Backend log level: `error`, `warn`, `info`, `debug`, `trace` | `info`  |
 | `PUSHOVER_APP_TOKEN`       | Pushover app token for uptime alert integrations         |         |
 | `HTTP_PORT`                | Exposed HTTP port, must be `80` when `HTTP_SCHEME=https` | `5566`  |
 | `HTTPS_PORT`               | Exposed HTTPS port (mapped by `setup.sh` Standalone)     | `443`   |
@@ -122,6 +124,9 @@ server {
     ssl_certificate     /etc/letsencrypt/live/analytics.example.com/fullchain.pem;
     ssl_certificate_key /etc/letsencrypt/live/analytics.example.com/privkey.pem;
 
+    # Session replay uploads are up to 6 MB; nginx's 1 MB default returns 413 and stops recording.
+    client_max_body_size 6m;
+
     location / {
         proxy_pass http://127.0.0.1:5566;
         proxy_set_header Host $host;
@@ -137,6 +142,7 @@ Serving a status page on its own domain? See [Custom status page domains](https:
 ## Requirements
 
 - Docker Engine 25+ and Docker Compose v2.24.1+ ([details](https://betterlytics.io/docs/installation/self-hosting#requirements))
+- An x86_64 (amd64) server. The image is not published for ARM (arm64), so ARM hosts fail with "no matching manifest"
 - A domain name pointed to your server
 - Ports 80/443 open (standalone mode) or a reverse proxy configured
 
