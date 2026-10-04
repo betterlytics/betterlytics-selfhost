@@ -154,7 +154,7 @@ BIND_ADDRESS=0.0.0.0
 
 ## Requirements
 
-- Docker Engine 25+ and Docker Compose v2.24.1+ ([details](https://betterlytics.io/docs/installation/self-hosting#requirements))
+- Docker Engine 25+ and Docker Compose v2.24+. The stack's healthcheck `start_interval` needs both ([details](https://betterlytics.io/docs/installation/self-hosting#requirements))
 - An x86_64 (amd64) server. The image is not published for ARM (arm64), so ARM hosts fail with "no matching manifest"
 - A domain name pointed to your server
 - Ports 80/443 open (standalone mode) or a reverse proxy configured
