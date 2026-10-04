@@ -10,7 +10,8 @@ ENV_FILE=".env"
 # --- Helpers ---
 
 generate_secret() {
-    tr -dc 'A-Za-z0-9' < /dev/urandom | head -c "$1"
+    # LC_ALL=C: under a UTF-8 locale, BSD tr (macOS) can stop on invalid byte sequences and return a short or empty string
+    LC_ALL=C tr -dc 'A-Za-z0-9' < /dev/urandom | head -c "$1"
 }
 
 # Validators return 0 on success, 1 on failure (and print the error message).
@@ -285,6 +286,10 @@ fi
 # =============================================
 
 SECRET_BASE=$(generate_secret 64)
+if [ "${#SECRET_BASE}" -ne 64 ]; then
+    echo "  Error: could not generate a random secret. Nothing was written."
+    exit 1
+fi
 
 cat > "$ENV_FILE" <<EOF
 # ===========================================
