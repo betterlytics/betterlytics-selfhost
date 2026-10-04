@@ -38,6 +38,17 @@ validate_domain() {
     esac
 }
 
+# Basic mode always yields https://DOMAIN (base/.env.base PUBLIC_BASE_URL); auth rejects any other origin.
+validate_not_ip() {
+    if printf '%s\n' "$1" | grep -qE '^[0-9]{1,3}(\.[0-9]{1,3}){3}(:[0-9]+)?$|^\[|:.*:'; then
+        echo "  Error: Basic mode needs a domain name (e.g. analytics.example.com) that your"
+        echo "         reverse proxy serves over HTTPS. Logins fail when Betterlytics is opened"
+        echo "         by IP address or over plain HTTP. For that setup, see"
+        echo "         \"Plain HTTP or IP access\" in the README."
+        return 1
+    fi
+}
+
 validate_port() {
     case "$1" in
         ''|*[!0-9]*)
@@ -229,6 +240,8 @@ echo "  Domain & Network"
 echo "-------------------------------------------"
 echo ""
 
+FORCE_HTTP_SCHEME=""   # never inherit one from the operator's shell
+
 if [ "$DEPLOY_MODE" = "standalone" ]; then
     HTTP_SCHEME="https"
     HTTP_PORT=80
@@ -246,10 +259,13 @@ elif [ "$DEPLOY_MODE" = "basic" ]; then
     HTTPS_PORT=443
     BIND_ADDRESS="127.0.0.1"
 
+    echo "  Use the hostname your reverse proxy serves over HTTPS."
+    echo "  Add :port if the proxy serves HTTPS on a port other than 443."
+    echo ""
     while true; do
         printf "  Domain name (e.g. analytics.example.com): "
         read -r DOMAIN
-        validate_not_empty "$DOMAIN" "Domain" && validate_domain "$DOMAIN" && break
+        validate_not_empty "$DOMAIN" "Domain" && validate_domain "$DOMAIN" && validate_not_ip "$DOMAIN" && break
     done
 
     while true; do
@@ -279,6 +295,7 @@ else
     done
 
     DOMAIN="localhost:${HTTP_PORT}"
+    FORCE_HTTP_SCHEME="http"
 fi
 
 # =============================================
@@ -316,8 +333,8 @@ SECRET_BASE="${SECRET_BASE}"
 
 EOF
 
-if [ "$DEPLOY_MODE" = "local" ]; then
-    echo "FORCE_HTTP_SCHEME=http" >> "$ENV_FILE"
+if [ -n "$FORCE_HTTP_SCHEME" ]; then
+    echo "FORCE_HTTP_SCHEME=${FORCE_HTTP_SCHEME}" >> "$ENV_FILE"
     echo "" >> "$ENV_FILE"
 fi
 
@@ -339,20 +356,8 @@ fi
 #  Summary
 # =============================================
 
-# Build the access URL
-if [ "$DEPLOY_MODE" = "standalone" ]; then
-    ACCESS_URL="https://${DOMAIN}"
-elif [ "$DEPLOY_MODE" = "local" ]; then
-    ACCESS_URL="http://${DOMAIN}"
-elif echo "$DOMAIN" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$'; then
-    if [ "$HTTP_PORT" = "80" ]; then
-        ACCESS_URL="http://${DOMAIN}"
-    else
-        ACCESS_URL="http://${DOMAIN}:${HTTP_PORT}"
-    fi
-else
-    ACCESS_URL="https://${DOMAIN}"
-fi
+# Same expression as PUBLIC_BASE_URL in base/.env.base, so the printed URL is the one auth accepts.
+ACCESS_URL="${FORCE_HTTP_SCHEME:-https}://${DOMAIN}"
 
 echo ""
 echo "==========================================="
@@ -369,6 +374,9 @@ fi
 echo "  Mode:       ${_mode_label}"
 echo "  Domain:     ${DOMAIN}"
 echo "  URL:        ${ACCESS_URL}"
+if [ "$DEPLOY_MODE" = "basic" ]; then
+    echo "  Proxy to:   http://127.0.0.1:${HTTP_PORT}"
+fi
 echo ""
 echo "-------------------------------------------"
 echo "  Next steps"

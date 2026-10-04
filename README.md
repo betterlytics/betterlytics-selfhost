@@ -64,10 +64,11 @@ table. Before upgrading:
 
 | Variable                   | Description                                              | Default |
 | -------------------------- | -------------------------------------------------------- | ------- |
-| `DOMAIN`                   | Domain where your instance is accessible (no protocol)   |         |
+| `DOMAIN`                   | Domain where your instance is accessible (no protocol). Include the port if browsers use a non-standard one (`host:8443`) |         |
 | `SESSION_REPLAYS_ENABLED`  | Enable Session Replay                                    | `true`  |
 | `REPLAY_RETENTION_DAYS`    | Days to keep session replays, `-1` for indefinitely      | `60`    |
 | `HTTP_SCHEME`              | `http` or `https`, built-in Let's Encrypt when `https`   | `http`  |
+| `FORCE_HTTP_SCHEME`        | `http` only when browsers reach the instance over plain HTTP; sets the scheme of the public URL used for logins and the tracking snippet | `https` |
 | `SSL_EMAIL`                | Optional email for the Let's Encrypt account             |         |
 | `ACME_CA`                  | Optional ACME directory URL (e.g. Let's Encrypt staging) |         |
 | `SECRET_BASE`              | Single secret all passwords and auth keys derive from; at least 32 random characters. An empty value, `CHANGEME` or a shorter one logs a warning at every start |         |
@@ -138,6 +139,18 @@ server {
 ```
 
 Serving a status page on its own domain? See [Custom status page domains](https://betterlytics.io/docs/installation/self-hosting#custom-status-page-domains) in the Self-Hosting Guide.
+
+### Plain HTTP or IP access
+
+Betterlytics accepts logins only from the exact URL it is configured for, `https://<DOMAIN>` by default. Your proxy must serve it over HTTPS at `DOMAIN`, including the port if it is not 443. If browsers reach the instance over plain HTTP (an IP address or an internal hostname on a trusted network), edit `.env` by hand:
+
+```
+DOMAIN=192.168.1.10:5566
+FORCE_HTTP_SCHEME=http
+BIND_ADDRESS=0.0.0.0
+```
+
+`DOMAIN` must include the port browsers use unless it is 80. Then run `docker compose up -d --wait`. Passwords and session cookies then travel unencrypted, so do this only on a network you trust. If the URL doesn't match, the sign-in page says the address doesn't match the configured one, and `docker compose logs betterlytics-selfhost` shows `[Better Auth]: Invalid origin: <origin>`.
 
 ## Requirements
 
