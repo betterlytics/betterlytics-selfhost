@@ -64,14 +64,14 @@ table. Before upgrading:
 
 | Variable                   | Description                                              | Default |
 | -------------------------- | -------------------------------------------------------- | ------- |
-| `DOMAIN`                   | Domain where your instance is accessible (no protocol)   |         |
+| `DOMAIN`                   | Domain where your instance is accessible (no protocol). Include the port if browsers use a non-standard one (`host:8443`) |         |
 | `SESSION_REPLAYS_ENABLED`  | Enable Session Replay                                    | `true`  |
 | `REPLAY_RETENTION_DAYS`    | Days to keep session replays, `-1` for indefinitely      | `60`    |
 | `HTTP_SCHEME`              | `http` or `https`, built-in Let's Encrypt when `https`   | `http`  |
+| `FORCE_HTTP_SCHEME`        | `http` only when browsers reach the instance over plain HTTP; sets the scheme of the public URL used for logins and the tracking snippet | `https` |
 | `SSL_EMAIL`                | Optional email for the Let's Encrypt account             |         |
 | `ACME_CA`                  | Optional ACME directory URL (e.g. Let's Encrypt staging) |         |
-| `SECRET_BASE`              | Single secret used to derive all passwords and auth keys |         |
-| `DEFAULT_LANGUAGE`         | Default UI language                                      | `en`    |
+| `SECRET_BASE`              | Single secret all passwords and auth keys derive from; at least 32 random characters. An empty value, `CHANGEME` or a shorter one logs a warning at every start |         |
 | `ENABLE_EMAILS`            | Enable sending emails                                    | `false` |
 | `MAILER_SEND_API_TOKEN`    | MailerSend API token (no SMTP server config needed if set) |       |
 | `SMTP_HOST`                | SMTP server hostname                                     |         |
@@ -83,14 +83,18 @@ table. Before upgrading:
 | `MAXMIND_ACCOUNT_ID`       | MaxMind account ID                                       |         |
 | `MAXMIND_LICENSE_KEY`      | MaxMind license key                                      |         |
 | `GEOLOCATION_MODE`         | `country` (~9 MB DB) or `full` for city/region (~61 MB)  | `country` |
-| `BACKGROUND_JOBS_ENABLED`  | Email reports and data-retention cleanup                 | `true`  |
+| `ENABLE_ASN_LOOKUP`        | Visitor network (ASN) lookup for bot detection, needs the MaxMind credentials | `false` |
+| `BACKGROUND_JOBS_ENABLED`  | Background worker: all outgoing email and data-retention cleanup; `false` stops both | `true`  |
+| `PUBLIC_ENABLE_FAVICON_FETCHING` | Fetch site icons from DuckDuckGo (server-side); `false` stops these requests | `true`  |
+| `LOG_LEVEL`                | Backend log level: `error`, `warn`, `info`, `debug`, `trace` | `info`  |
 | `PUSHOVER_APP_TOKEN`       | Pushover app token for uptime alert integrations         |         |
+| `ALLOW_PRIVATE_TARGETS`    | Monitors and webhooks may reach private/LAN/loopback addresses on any port (link-local always blocked) | `true`  |
 | `HTTP_PORT`                | Exposed HTTP port, must be `80` when `HTTP_SCHEME=https` | `5566`  |
 | `HTTPS_PORT`               | Exposed HTTPS port (mapped by `setup.sh` Standalone)     | `443`   |
 | `BIND_ADDRESS`             | Host address to bind the exposed ports to                | `127.0.0.1` |
 | `TRUSTED_PROXIES`          | Extra proxy IPs/CIDRs whose `X-Forwarded-For` is trusted |         |
 
-All database passwords and auth secrets are derived automatically from `SECRET_BASE`. You only need to set one secret.
+All database passwords and auth secrets are derived automatically from `SECRET_BASE`. You only need to set one secret. Use at least 32 random characters (`setup.sh` generates 64, or use `openssl rand -hex 32`) and set it before the first start: the databases are created with passwords derived from it, so changing it later locks the app out of existing data. If `docker compose logs betterlytics-selfhost` shows a `SECRET_BASE` warning on an instance that holds no data yet, run `docker compose down -v`, set a new value and start again.
 
 ### Behind a Reverse Proxy
 
@@ -122,6 +126,9 @@ server {
     ssl_certificate     /etc/letsencrypt/live/analytics.example.com/fullchain.pem;
     ssl_certificate_key /etc/letsencrypt/live/analytics.example.com/privkey.pem;
 
+    # Session replay uploads are up to 6 MB; nginx's 1 MB default returns 413 and stops recording.
+    client_max_body_size 6m;
+
     location / {
         proxy_pass http://127.0.0.1:5566;
         proxy_set_header Host $host;
@@ -134,9 +141,22 @@ server {
 
 Serving a status page on its own domain? See [Custom status page domains](https://betterlytics.io/docs/installation/self-hosting#custom-status-page-domains) in the Self-Hosting Guide.
 
+### Plain HTTP or IP access
+
+Betterlytics accepts logins only from the exact URL it is configured for, `https://<DOMAIN>` by default. Your proxy must serve it over HTTPS at `DOMAIN`, including the port if it is not 443. If browsers reach the instance over plain HTTP (an IP address or an internal hostname on a trusted network), edit `.env` by hand:
+
+```
+DOMAIN=192.168.1.10:5566
+FORCE_HTTP_SCHEME=http
+BIND_ADDRESS=0.0.0.0
+```
+
+`DOMAIN` must include the port browsers use unless it is 80. Then run `docker compose up -d --wait`. Passwords and session cookies then travel unencrypted, so do this only on a network you trust. If the URL doesn't match, the sign-in page says the address doesn't match the configured one, and `docker compose logs betterlytics-selfhost` shows `[Better Auth]: Invalid origin: <origin>`.
+
 ## Requirements
 
-- Docker Engine 25+ and Docker Compose v2.24.1+ ([details](https://betterlytics.io/docs/installation/self-hosting#requirements))
+- Docker Engine 25+ and Docker Compose v2.24+. The stack's healthcheck `start_interval` needs both ([details](https://betterlytics.io/docs/installation/self-hosting#requirements))
+- An x86_64 (amd64) server. The image is not published for ARM (arm64), so ARM hosts fail with "no matching manifest"
 - A domain name pointed to your server
 - Ports 80/443 open (standalone mode) or a reverse proxy configured
 

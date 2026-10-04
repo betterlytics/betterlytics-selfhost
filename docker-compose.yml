@@ -22,7 +22,6 @@ services:
       - SSL_EMAIL
       - ACME_CA # optional; Let's Encrypt staging for tests
       - SECRET_BASE
-      - DEFAULT_LANGUAGE
       - ENABLE_EMAILS
       - MAILER_SEND_API_TOKEN
       - SMTP_HOST
@@ -31,9 +30,11 @@ services:
       - SMTP_PASSWORD
       - SMTP_FROM
       - ENABLE_GEOLOCATION
+      - ENABLE_ASN_LOOKUP # optional; bot detection via MaxMind GeoLite2-ASN, needs the MAXMIND_* credentials
       - MAXMIND_ACCOUNT_ID
       - MAXMIND_LICENSE_KEY
       - GEOLOCATION_MODE
+      - PUBLIC_ENABLE_FAVICON_FETCHING # optional; false stops server-side icon fetches from DuckDuckGo
       - BACKGROUND_JOBS_ENABLED=${BACKGROUND_JOBS_ENABLED:-true}
       - PUSHOVER_APP_TOKEN
       - REPLAY_STORAGE
@@ -46,6 +47,7 @@ services:
       - S3_ACCESS_KEY_ID
       - S3_SECRET_ACCESS_KEY
       - S3_FORCE_PATH_STYLE
+      - S3_SSE_ENABLED
       - ALLOW_PRIVATE_TARGETS=${ALLOW_PRIVATE_TARGETS:-true}
     extra_hosts:
       - "host.docker.internal:host-gateway"
