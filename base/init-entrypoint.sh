@@ -37,6 +37,11 @@ fi
 echo "Running PostgreSQL migrations..."
 prisma migrate deploy --schema /app/initializer/prisma/schema.prisma
 
+if [ -f scripts/post_migrate_retention_env.js ]; then
+    echo "Checking DATA_RETENTION_DAYS carry-over..."
+    node scripts/post_migrate_retention_env.js
+fi
+
 echo "Running pg-boss migrations..."
 node scripts/migrate_pgboss.js
 
