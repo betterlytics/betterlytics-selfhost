@@ -38,6 +38,7 @@ services:
       - PUSHOVER_APP_TOKEN
       - REPLAY_STORAGE
       - REPLAY_RETENTION_DAYS
+      - DATA_RETENTION_DAYS # retired; only for the boot warning
       - S3_ENABLED
       - S3_BUCKET
       - S3_REGION
@@ -101,6 +102,7 @@ services:
       - SKIP_VERSION_CHECK
       - REPLAY_STORAGE
       - REPLAY_RETENTION_DAYS # ClickHouse replay TTL is set during migration
+      - DATA_RETENTION_DAYS # carried over once to dashboards at the 1 year default
     volumes:
       - ./base/derive.sh:/derive.sh:ro
       - ./base/secrets-env.sh:/secrets-env.sh:ro
