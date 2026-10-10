@@ -8,6 +8,7 @@
 
 (app_routes) {
 	import security_headers
+	import framing_defaults
 	log {
 		output stdout
 		format json
@@ -63,6 +64,7 @@
 
 	handle_errors {
 		import security_headers
+		import framing_defaults
 		# log_skip is `vars log_skip true`; re-enable so edge failures on ingest still log
 		vars log_skip false
 		# replay.js stops recording on any 4xx and retries on 5xx; nginx answered 503
