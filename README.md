@@ -139,8 +139,6 @@ server {
 }
 ```
 
-The built-in Caddy has its admin API turned off, so it cannot be reloaded live. After editing a file under `base/proxy/`, run `docker compose restart betterlytics-selfhost`.
-
 Serving a status page on its own domain? See [Custom status page domains](https://betterlytics.io/docs/installation/self-hosting#custom-status-page-domains) in the Self-Hosting Guide.
 
 ### Plain HTTP or IP access
