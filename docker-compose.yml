@@ -4,9 +4,11 @@ x-logging: &default-logging
     max-size: "10m"
     max-file: "5"
 
+x-betterlytics-image: &betterlytics-image ghcr.io/betterlytics/betterlytics-selfhost:vX.Y.Z
+
 services:
   betterlytics-selfhost:
-    image: ghcr.io/betterlytics/betterlytics-selfhost:latest
+    image: *betterlytics-image
     env_file:
       - ./base/.env.base
     environment:
@@ -15,13 +17,11 @@ services:
       - HTTP_PORT
       - HTTPS_PORT
       - BIND_ADDRESS
+      - TRUSTED_PROXIES # optional; extra proxy IPs/CIDRs whose X-Forwarded-For Caddy trusts
       - FORCE_HTTP_SCHEME
       - SSL_EMAIL
+      - ACME_CA # optional; Let's Encrypt staging for tests
       - SECRET_BASE
-      - ADMIN_EMAIL
-      - ADMIN_PASSWORD
-      - DEFAULT_LANGUAGE
-      - ENABLE_UPTIME_MONITORING
       - ENABLE_EMAILS
       - MAILER_SEND_API_TOKEN
       - SMTP_HOST
@@ -30,26 +30,86 @@ services:
       - SMTP_PASSWORD
       - SMTP_FROM
       - ENABLE_GEOLOCATION
+      - ENABLE_ASN_LOOKUP # optional; bot detection via MaxMind GeoLite2-ASN, needs the MAXMIND_* credentials
       - MAXMIND_ACCOUNT_ID
       - MAXMIND_LICENSE_KEY
+      - GEOLOCATION_MODE
+      - PUBLIC_ENABLE_FAVICON_FETCHING # optional; false stops server-side icon fetches from DuckDuckGo
+      - BACKGROUND_JOBS_ENABLED=${BACKGROUND_JOBS_ENABLED:-true}
+      - PUSHOVER_APP_TOKEN
+      - REPLAY_STORAGE
+      - REPLAY_RETENTION_DAYS
+      - DATA_RETENTION_DAYS # retired; only for the boot warning
+      - S3_ENABLED
+      - S3_BUCKET
+      - S3_REGION
+      - S3_ENDPOINT
+      - S3_ACCESS_KEY_ID
+      - S3_SECRET_ACCESS_KEY
+      - S3_FORCE_PATH_STYLE
+      - S3_SSE_ENABLED
+      - ALLOW_PRIVATE_TARGETS=${ALLOW_PRIVATE_TARGETS:-true}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     restart: unless-stopped
     container_name: betterlytics-selfhost
     ports:
       - "${BIND_ADDRESS:-127.0.0.1}:${HTTP_PORT:-5566}:80"
     volumes:
-      - ./base/proxy:/etc/nginx/templates:ro
+      - ./base/proxy:/etc/caddy:ro
       - ./base/supervisord.conf:/etc/supervisor/conf.d/betterlytics.conf:ro
       - ./base/derive.sh:/derive.sh:ro
+      - ./base/secrets-env.sh:/secrets-env.sh:ro
       - ./base/entrypoint.sh:/entrypoint.sh:ro
-      - betterlytics_selfhost_letsencrypt_certs:/etc/letsencrypt
-      - betterlytics_selfhost_certbot_www:/var/www/certbot
+      - betterlytics_selfhost_caddy_data:/data # certs + ACME account (XDG_DATA_HOME)
+      - betterlytics_selfhost_geoip:/app/backend/assets/geoip
     entrypoint: ["/bin/sh", "/entrypoint.sh"]
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:80/"]
+      test:
+        - CMD-SHELL
+        - >-
+          if [ "$$HTTP_SCHEME" = "https" ]; then
+            curl -fsk -o /dev/null --resolve "$$DOMAIN:443:127.0.0.1" "https://$$DOMAIN/";
+          else
+            curl -fs -o /dev/null http://localhost/;
+          fi
+          && curl -fs -o /dev/null http://127.0.0.1:3001/health
       interval: 30s
       timeout: 5s
       retries: 3
-      start_period: 30s
+      start_period: 120s # first HTTPS boot waits on ACME
+      start_interval: 5s
+    depends_on:
+      betterlytics-init:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
+      clickhouse:
+        condition: service_healthy
+    networks:
+      - clickhouse_network
+      - postgres_network
+    logging: *default-logging
+
+  # One-shot: runs migrations and role provisioning, then exits.
+  # The app service starts only after this exits 0; restarting the app does not re-run it.
+  betterlytics-init:
+    image: *betterlytics-image
+    container_name: betterlytics-init
+    restart: "no"
+    env_file:
+      - ./base/.env.base
+    environment:
+      - SECRET_BASE
+      - SKIP_VERSION_CHECK
+      - REPLAY_STORAGE
+      - REPLAY_RETENTION_DAYS # ClickHouse replay TTL is set during migration
+      - DATA_RETENTION_DAYS # carried over once to dashboards at the 1 year default
+    volumes:
+      - ./base/derive.sh:/derive.sh:ro
+      - ./base/secrets-env.sh:/secrets-env.sh:ro
+      - ./base/init-entrypoint.sh:/init-entrypoint.sh:ro
+    entrypoint: ["/bin/sh", "/init-entrypoint.sh"]
     depends_on:
       postgres:
         condition: service_healthy
@@ -119,8 +179,8 @@ volumes:
   betterlytics_selfhost_postgres_data:
   betterlytics_selfhost_clickhouse_data:
   betterlytics_selfhost_clickhouse_users:
-  betterlytics_selfhost_letsencrypt_certs:
-  betterlytics_selfhost_certbot_www:
+  betterlytics_selfhost_caddy_data:
+  betterlytics_selfhost_geoip:
 
 networks:
   clickhouse_network:

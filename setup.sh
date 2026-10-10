@@ -10,7 +10,8 @@ ENV_FILE=".env"
 # --- Helpers ---
 
 generate_secret() {
-    tr -dc 'A-Za-z0-9' < /dev/urandom | head -c "$1"
+    # LC_ALL=C: under a UTF-8 locale, BSD tr (macOS) can stop on invalid byte sequences and return a short or empty string
+    LC_ALL=C tr -dc 'A-Za-z0-9' < /dev/urandom | head -c "$1"
 }
 
 # Validators return 0 on success, 1 on failure (and print the error message).
@@ -37,15 +38,15 @@ validate_domain() {
     esac
 }
 
-validate_email() {
-    case "$1" in
-        *@*.*)
-            ;;
-        *)
-            echo "  Error: Invalid email address."
-            return 1
-            ;;
-    esac
+# Basic mode always yields https://DOMAIN (base/.env.base PUBLIC_BASE_URL); auth rejects any other origin.
+validate_not_ip() {
+    if printf '%s\n' "$1" | grep -qE '^[0-9]{1,3}(\.[0-9]{1,3}){3}(:[0-9]+)?$|^\[|:.*:'; then
+        echo "  Error: Basic mode needs a domain name (e.g. analytics.example.com) that your"
+        echo "         reverse proxy serves over HTTPS. Logins fail when Betterlytics is opened"
+        echo "         by IP address or over plain HTTP. For that setup, see"
+        echo "         \"Plain HTTP or IP access\" in the README."
+        return 1
+    fi
 }
 
 validate_port() {
@@ -59,6 +60,28 @@ validate_port() {
         echo "  Error: Port must be between 1 and 65535."
         return 1
     fi
+}
+
+print_banner() {
+    if [ -t 1 ] && [ -z "${NO_COLOR:-}" ]; then
+        _b=$(printf '\033[38;2;32;115;188m'); _r=$(printf '\033[0m')
+    else
+        _b=''; _r=''
+    fi
+    cat <<EOF
+  ██████╗ ███████╗████████╗████████╗███████╗██████╗
+  ██╔══██╗██╔════╝╚══██╔══╝╚══██╔══╝██╔════╝██╔══██╗
+  ██████╔╝█████╗     ██║      ██║   █████╗  ██████╔╝
+  ██╔══██╗██╔══╝     ██║      ██║   ██╔══╝  ██╔══██╗
+  ██████╔╝███████╗   ██║      ██║   ███████╗██║  ██║
+  ╚═════╝ ╚══════╝   ╚═╝      ╚═╝   ╚══════╝╚═╝  ╚═╝
+  ${_b}██╗  ██╗   ██╗████████╗██╗ ██████╗███████╗${_r}
+  ${_b}██║  ╚██╗ ██╔╝╚══██╔══╝██║██╔════╝██╔════╝${_r}
+  ${_b}██║   ╚████╔╝    ██║   ██║██║     ███████╗${_r}
+  ${_b}██║    ╚██╔╝     ██║   ██║██║     ╚════██║${_r}
+  ${_b}███████╗██║      ██║   ██║╚██████╗███████║${_r}
+  ${_b}╚══════╝╚═╝      ╚═╝   ╚═╝ ╚═════╝╚══════╝${_r}
+EOF
 }
 
 # --- Arrow-key menu selector ---
@@ -167,20 +190,16 @@ menu_select() {
 
 # --- Pre-flight check ---
 
-if [ -f "$ENV_FILE" ]; then
+if [ -e "$ENV_FILE" ]; then
     echo ""
-    echo "  A .env file already exists. (Use ▲/▼ to select, Enter to confirm)"
+    echo "  Setup is for first-time installation only."
+    echo "  Existing configuration found; nothing was changed."
+    echo "  Replacing this configuration can break your existing installation."
     echo ""
-
-    menu_select \
-        "Cancel"    "Keep the current .env and exit" \
-        "Overwrite" "Replace the existing configuration"
-
-    if [ "$MENU_RESULT" -eq 0 ]; then
-        echo ""
-        echo "  Aborted."
-        exit 0
-    fi
+    echo "  To upgrade, follow the Self-Hosting Guide:"
+    echo "  https://betterlytics.io/docs/installation/self-hosting"
+    echo ""
+    exit 1
 fi
 
 # =============================================
@@ -188,9 +207,9 @@ fi
 # =============================================
 
 echo ""
-echo "==========================================="
-echo "  Betterlytics  -  Self-Hosted Setup"
-echo "==========================================="
+print_banner
+echo ""
+echo "  Self-Hosted Setup"
 echo ""
 
 # =============================================
@@ -221,6 +240,8 @@ echo "  Domain & Network"
 echo "-------------------------------------------"
 echo ""
 
+FORCE_HTTP_SCHEME=""   # never inherit one from the operator's shell
+
 if [ "$DEPLOY_MODE" = "standalone" ]; then
     HTTP_SCHEME="https"
     HTTP_PORT=80
@@ -236,12 +257,15 @@ if [ "$DEPLOY_MODE" = "standalone" ]; then
 elif [ "$DEPLOY_MODE" = "basic" ]; then
     HTTP_SCHEME="http"
     HTTPS_PORT=443
-    BIND_ADDRESS="0.0.0.0"
+    BIND_ADDRESS="127.0.0.1"
 
+    echo "  Use the hostname your reverse proxy serves over HTTPS."
+    echo "  Add :port if the proxy serves HTTPS on a port other than 443."
+    echo ""
     while true; do
         printf "  Domain name (e.g. analytics.example.com): "
         read -r DOMAIN
-        validate_not_empty "$DOMAIN" "Domain" && validate_domain "$DOMAIN" && break
+        validate_not_empty "$DOMAIN" "Domain" && validate_domain "$DOMAIN" && validate_not_ip "$DOMAIN" && break
     done
 
     while true; do
@@ -271,52 +295,24 @@ else
     done
 
     DOMAIN="localhost:${HTTP_PORT}"
+    FORCE_HTTP_SCHEME="http"
 fi
-
-# =============================================
-#  Step 3: Dashboard Admin Account
-# =============================================
-
-echo ""
-echo "-------------------------------------------"
-echo "  Dashboard Admin Account"
-echo "-------------------------------------------"
-echo ""
-
-while true; do
-    printf "  Email: "
-    read -r ADMIN_EMAIL
-    validate_not_empty "$ADMIN_EMAIL" "Admin email" && validate_email "$ADMIN_EMAIL" && break
-done
-
-while true; do
-    printf "  Password: "
-    stty -echo
-    read -r ADMIN_PASSWORD
-    stty echo
-    echo ""
-    validate_not_empty "$ADMIN_PASSWORD" "Admin password" && break
-done
 
 # =============================================
 #  Generate & Write Configuration
 # =============================================
 
 SECRET_BASE=$(generate_secret 64)
+if [ "${#SECRET_BASE}" -ne 64 ]; then
+    echo "  Error: could not generate a random secret. Nothing was written."
+    exit 1
+fi
 
 cat > "$ENV_FILE" <<EOF
 # ===========================================
 # Betterlytics Self-Hosted Configuration
 # Generated by setup.sh
 # ===========================================
-
-# --- Admin Account ---
-ADMIN_EMAIL="${ADMIN_EMAIL}"
-ADMIN_PASSWORD="${ADMIN_PASSWORD}"
-
-# --- General ---
-DEFAULT_LANGUAGE="en"
-ENABLE_UPTIME_MONITORING="false"
 
 # --- Geolocation ---
 ENABLE_GEOLOCATION="false"
@@ -337,8 +333,8 @@ SECRET_BASE="${SECRET_BASE}"
 
 EOF
 
-if [ "$DEPLOY_MODE" = "local" ]; then
-    echo "FORCE_HTTP_SCHEME=http" >> "$ENV_FILE"
+if [ -n "$FORCE_HTTP_SCHEME" ]; then
+    echo "FORCE_HTTP_SCHEME=${FORCE_HTTP_SCHEME}" >> "$ENV_FILE"
     echo "" >> "$ENV_FILE"
 fi
 
@@ -360,20 +356,8 @@ fi
 #  Summary
 # =============================================
 
-# Build the access URL
-if [ "$DEPLOY_MODE" = "standalone" ]; then
-    ACCESS_URL="https://${DOMAIN}"
-elif [ "$DEPLOY_MODE" = "local" ]; then
-    ACCESS_URL="http://${DOMAIN}"
-elif echo "$DOMAIN" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$'; then
-    if [ "$HTTP_PORT" = "80" ]; then
-        ACCESS_URL="http://${DOMAIN}"
-    else
-        ACCESS_URL="http://${DOMAIN}:${HTTP_PORT}"
-    fi
-else
-    ACCESS_URL="https://${DOMAIN}"
-fi
+# Same expression as PUBLIC_BASE_URL in base/.env.base, so the printed URL is the one auth accepts.
+ACCESS_URL="${FORCE_HTTP_SCHEME:-https}://${DOMAIN}"
 
 echo ""
 echo "==========================================="
@@ -389,8 +373,10 @@ else
 fi
 echo "  Mode:       ${_mode_label}"
 echo "  Domain:     ${DOMAIN}"
-echo "  Admin:      ${ADMIN_EMAIL}"
 echo "  URL:        ${ACCESS_URL}"
+if [ "$DEPLOY_MODE" = "basic" ]; then
+    echo "  Proxy to:   http://127.0.0.1:${HTTP_PORT}"
+fi
 echo ""
 echo "-------------------------------------------"
 echo "  Next steps"
@@ -401,7 +387,9 @@ echo ""
 echo "     docker compose up -d --wait"
 echo ""
 echo "  2. Open ${ACCESS_URL} in your browser"
-echo "     and log in with your admin credentials."
+echo "     and create your account."
+echo "     The first account created becomes"
+echo "     the admin."
 echo ""
 echo "-------------------------------------------"
 echo "  Optional configuration"
@@ -417,6 +405,15 @@ echo ""
 echo "  Email notifications:"
 echo "    Set ENABLE_EMAILS=true and configure"
 echo "    SMTP or MailerSend in your .env file."
+echo "    SMTP_FROM is required for both, as"
+echo "    \"Name <address>\" or a bare address."
+echo ""
+echo "  Session replay (enabled by default):"
+echo "    Recordings are stored in ClickHouse."
+echo "    To disable, add SESSION_REPLAYS_ENABLED=false"
+echo "    to your .env file."
+echo "    To use your own S3-compatible storage instead,"
+echo "    see the S3_* options in .env.example."
 echo ""
 echo "  See .env.example for all available options."
 echo ""
