@@ -88,7 +88,7 @@ table. Before upgrading:
 | `PUBLIC_ENABLE_FAVICON_FETCHING` | Fetch site icons from DuckDuckGo (server-side); `false` stops these requests | `true`  |
 | `LOG_LEVEL`                | Backend log level: `error`, `warn`, `info`, `debug`, `trace` | `info`  |
 | `PUSHOVER_APP_TOKEN`       | Pushover app token for uptime alert integrations         |         |
-| `ALLOW_PRIVATE_TARGETS`    | Monitors and webhooks may reach private/LAN/loopback addresses on any port (link-local always blocked) | `true`  |
+| `ALLOW_PRIVATE_TARGETS`    | Monitors and webhooks may reach private/LAN addresses on any port. Loopback and link-local are always blocked; reach services on the Docker host through its LAN IP or `host.docker.internal` | `true`  |
 | `HTTP_PORT`                | Exposed HTTP port, must be `80` when `HTTP_SCHEME=https` | `5566`  |
 | `HTTPS_PORT`               | Exposed HTTPS port (mapped by `setup.sh` Standalone)     | `443`   |
 | `BIND_ADDRESS`             | Host address to bind the exposed ports to                | `127.0.0.1` |

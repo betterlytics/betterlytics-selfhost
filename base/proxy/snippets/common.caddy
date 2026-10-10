@@ -3,10 +3,16 @@
 		Strict-Transport-Security "max-age=31536000"
 		X-Content-Type-Options "nosniff"
 		Referrer-Policy "strict-origin-when-cross-origin"
-		X-Frame-Options "SAMEORIGIN"
-		Content-Security-Policy "frame-ancestors 'self'"
 		-Server
 	}
+}
+
+# Defaults for responses where the app set none; the app's own value always wins.
+# One directive per header: several ? fields in one block share a single "all absent" condition.
+# Not imported by status sites, so status pages can be embedded on other sites.
+(framing_defaults) {
+	header ?X-Frame-Options "SAMEORIGIN"
+	header ?Content-Security-Policy "frame-ancestors 'self'"
 }
 
 # Usage: import app_proxy <upstream> <max body size>
