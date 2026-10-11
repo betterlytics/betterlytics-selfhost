@@ -93,6 +93,7 @@ table. Before upgrading:
 | `HTTPS_PORT`               | Exposed HTTPS port (mapped by `setup.sh` Standalone)     | `443`   |
 | `BIND_ADDRESS`             | Host address to bind the exposed ports to                | `127.0.0.1` |
 | `TRUSTED_PROXIES`          | Extra proxy IPs/CIDRs whose `X-Forwarded-For` is trusted |         |
+| `AUTH_TRUSTED_PROXIES`     | Behind your own proxy: the IPs/CIDRs it connects from, so sign-in rate limits apply per visitor |         |
 
 All database passwords and auth secrets are derived automatically from `SECRET_BASE`. You only need to set one secret. Use at least 32 random characters (`setup.sh` generates 64, or use `openssl rand -hex 32`) and set it before the first start: the databases are created with passwords derived from it, so changing it later locks the app out of existing data. If `docker compose logs betterlytics-selfhost` shows a `SECRET_BASE` warning on an instance that holds no data yet, run `docker compose down -v`, set a new value and start again.
 
@@ -107,6 +108,8 @@ HTTP_PORT=5566
 ```
 
 Then point your reverse proxy to that port. Proxies on the same host or a private network are trusted automatically. If your proxy connects from a public address, list it in `TRUSTED_PROXIES`, otherwise every visitor is recorded with the proxy's IP. To check, compare `request.remote_ip` and `request.client_ip` in `docker compose logs betterlytics-selfhost`.
+
+Sign-in rate limits need one more setting behind your own proxy. Until `AUTH_TRUSTED_PROXIES` is set, all sign-in attempts share one limit, so a few failed logins block sign-in for everyone for about 10 seconds. Set it to the exact address your proxy connects from, which is the `request.remote_ip` value in those logs (usually the Docker bridge gateway, for example `172.18.0.1`). List that single address rather than a whole private range, because a client inside a trusted range can choose the address it is counted under. The gateway address can change when the Docker network is recreated, so check it again if sign-in limits become shared. If you set `TRUSTED_PROXIES`, add the same entries here.
 
 Example with **Caddy**:
 
