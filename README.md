@@ -30,11 +30,11 @@ Open your instance URL in a browser and create your account.
 
 ### Standalone (automatic HTTPS, recommended for a public server)
 
-Set `HTTP_SCHEME=https`; `setup.sh` selects this mode by default. The container will automatically provision and renew TLS certificates via Let's Encrypt.
-`HTTP_PORT` must be `80` and port 443 must be mapped; the container refuses to start otherwise.
-Custom status-page domains get their certificate on first visit. If a visitor sees a TLS error, `docker compose logs betterlytics-selfhost | grep permission` shows the hostname and the status the `ask` endpoint answered (`404` not published or unknown, `403` reserved name, `429` lookup ceiling).
+The container is the public endpoint and provisions and renews its own Let's Encrypt certificate. This is the default in `setup.sh`.
 
-Ports 80 and 443 must be accessible from the internet for ACME challenges and HTTPS traffic. When using `setup.sh`, this is handled automatically, the script generates a `docker-compose.override.yml` that exposes port 443 and binds to `0.0.0.0`.
+Ports 80 and 443 must be reachable from the internet.
+
+Configuring by hand? See [Standalone](https://betterlytics.io/docs/installation/self-hosting#standalone) in the Self-Hosting Guide.
 
 ## Upgrading
 
