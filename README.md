@@ -93,6 +93,7 @@ table. Before upgrading:
 | `HTTPS_PORT`               | Exposed HTTPS port (mapped by `setup.sh` Standalone)     | `443`   |
 | `BIND_ADDRESS`             | Host address to bind the exposed ports to                | `127.0.0.1` |
 | `TRUSTED_PROXIES`          | Extra proxy IPs/CIDRs whose `X-Forwarded-For` is trusted |         |
+| `AUTH_TRUSTED_PROXIES`     | Behind your own proxy: the IPs/CIDRs it connects from, so sign-in rate limits apply per visitor |         |
 
 All database passwords and auth secrets are derived automatically from `SECRET_BASE`. You only need to set one secret. Use at least 32 random characters (`setup.sh` generates 64, or use `openssl rand -hex 32`) and set it before the first start: the databases are created with passwords derived from it, so changing it later locks the app out of existing data. If `docker compose logs betterlytics-selfhost` shows a `SECRET_BASE` warning on an instance that holds no data yet, run `docker compose down -v`, set a new value and start again.
 
