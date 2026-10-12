@@ -39,8 +39,7 @@ chmod +x setup.sh
 Or copy `.env.example` to `.env` and fill in the values manually.
 
 > [!TIP]
-> Just want to try it out?<br>
-> Pick **Try locally** in the setup script to run locally.
+> Just want to try it out? Pick **Try locally** in the setup script to run locally.
 
 ### 2. Deploy
 
