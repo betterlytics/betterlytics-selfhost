@@ -43,4 +43,12 @@ docker compose up -d --wait
 
 Open your instance URL in a browser and create your account.
 
-> **Enjoying Betterlytics?** Give the [main repository](https://github.com/betterlytics/betterlytics) a star. It helps others find the project.
+---
+
+<div align="center">
+
+If you find Betterlytics useful, consider giving it a star!
+
+[![GitHub stars](https://img.shields.io/github/stars/betterlytics/betterlytics?style=social)](https://github.com/betterlytics/betterlytics)
+
+</div>
