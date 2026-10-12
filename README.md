@@ -25,8 +25,7 @@ Rather skip the reading? These three steps get an instance running.
 > [!NOTE]
 > **Prerequisites**
 > - Docker Engine 25+ and Docker Compose v2.24+
-> - An x86_64 (amd64) server. The image is not published for ARM
-> - A domain name pointed to your server, with ports 80 and 443 open or a reverse proxy in front
+> - An x86_64 (amd64) machine. The image is not published for ARM
 
 ### 1. Configure
 
