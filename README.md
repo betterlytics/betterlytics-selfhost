@@ -49,6 +49,22 @@ docker compose up -d --wait
 Compose pulls the new image on its own. Read the release notes first for
 version-specific steps such as backups or disk space.
 
+### Upgrading to PUBLIC_URL and TLS
+
+`DOMAIN`, `HTTP_SCHEME`, `FORCE_HTTP_SCHEME` and `HTTPS_PORT` are replaced by
+`PUBLIC_URL` and `TLS`. An instance whose `.env` still has only the old names
+stops at start, and `docker compose logs betterlytics-init` prints the two lines
+to add:
+
+| Old `.env`                                       | New `.env`                                     |
+| ------------------------------------------------ | ---------------------------------------------- |
+| `HTTP_SCHEME=https`                              | `PUBLIC_URL=https://<DOMAIN>` and `TLS=auto`   |
+| `HTTP_SCHEME=http`                               | `PUBLIC_URL=https://<DOMAIN>` and `TLS=off`    |
+| `HTTP_SCHEME=http` with `FORCE_HTTP_SCHEME=http` | `PUBLIC_URL=http://<DOMAIN>` and `TLS=off`     |
+| `HTTPS_PORT`                                     | Remove it. If your `docker-compose.override.yml` uses `${HTTPS_PORT}`, write `443` there first |
+
+`HTTP_PORT` and `BIND_ADDRESS` keep their meaning. Then run `docker compose up -d --wait` again.
+
 ### Upgrading from v1.3.5 or earlier
 
 This release includes one-time ClickHouse migrations that rewrite the events
@@ -64,11 +80,10 @@ table. Before upgrading:
 
 | Variable                   | Description                                              | Default |
 | -------------------------- | -------------------------------------------------------- | ------- |
-| `DOMAIN`                   | Domain where your instance is accessible (no protocol). Include the port if browsers use a non-standard one (`host:8443`) |         |
+| `PUBLIC_URL`               | Full address browsers use: scheme, host and, if non-standard, the port (`https://analytics.example.com`, `https://host:8443`). No path. Logins, links and the tracking snippet use exactly this address |         |
+| `TLS`                      | `auto` for built-in Let's Encrypt (needs an `https://` `PUBLIC_URL` with a public hostname and no port), `off` for plain HTTP behind your own proxy or locally | `off`   |
 | `SESSION_REPLAYS_ENABLED`  | Enable Session Replay                                    | `true`  |
 | `REPLAY_RETENTION_DAYS`    | Days to keep session replays, `-1` for indefinitely      | `60`    |
-| `HTTP_SCHEME`              | `http` or `https`, built-in Let's Encrypt when `https`   | `http`  |
-| `FORCE_HTTP_SCHEME`        | `http` only when browsers reach the instance over plain HTTP; sets the scheme of the public URL used for logins and the tracking snippet | `https` |
 | `SSL_EMAIL`                | Optional email for the Let's Encrypt account             |         |
 | `ACME_CA`                  | Optional ACME directory URL (e.g. Let's Encrypt staging) |         |
 | `SECRET_BASE`              | Single secret all passwords and auth keys derive from; at least 32 random characters. An empty value, `CHANGEME` or a shorter one logs a warning at every start |         |
@@ -89,9 +104,8 @@ table. Before upgrading:
 | `LOG_LEVEL`                | Backend log level: `error`, `warn`, `info`, `debug`, `trace` | `info`  |
 | `PUSHOVER_APP_TOKEN`       | Pushover app token for uptime alert integrations         |         |
 | `ALLOW_PRIVATE_TARGETS`    | Monitors and webhooks may reach private/LAN addresses on any port. Loopback and link-local are always blocked; reach services on the Docker host through its LAN IP or `host.docker.internal` | `true`  |
-| `HTTP_PORT`                | Exposed HTTP port, must be `80` when `HTTP_SCHEME=https` | `5566`  |
-| `HTTPS_PORT`               | Exposed HTTPS port (mapped by `setup.sh` Standalone)     | `443`   |
-| `BIND_ADDRESS`             | Host address to bind the exposed ports to                | `127.0.0.1` |
+| `HTTP_PORT`                | Advanced: exposed HTTP port, must be `80` with `TLS=auto` | `5566`  |
+| `BIND_ADDRESS`             | Advanced: host address to bind the exposed ports to      | `127.0.0.1` |
 | `TRUSTED_PROXIES`          | Extra proxy IPs/CIDRs whose `X-Forwarded-For` is trusted |         |
 | `AUTH_TRUSTED_PROXIES`     | Behind your own proxy: the IPs/CIDRs it connects from, so sign-in rate limits apply per visitor |         |
 
@@ -99,15 +113,16 @@ All database passwords and auth secrets are derived automatically from `SECRET_B
 
 ### Behind a Reverse Proxy
 
-Set `HTTP_SCHEME=http` and bind to localhost on a non-standard port so you don't expose port 80 directly:
+Set `TLS=off` and bind to localhost on a non-standard port so you don't expose port 80 directly:
 
 ```
-HTTP_SCHEME=http
+PUBLIC_URL=https://analytics.example.com
+TLS=off
 BIND_ADDRESS=127.0.0.1
 HTTP_PORT=5566
 ```
 
-Then point your reverse proxy to that port. Proxies on the same host or a private network are trusted automatically. If your proxy connects from a public address, list it in `TRUSTED_PROXIES`, otherwise every visitor is recorded with the proxy's IP. To check, compare `request.remote_ip` and `request.client_ip` in `docker compose logs betterlytics-selfhost`.
+Then point your reverse proxy to that port. The built-in Caddy configuration ships inside the image; to change it, mount your own configuration directory over `/etc/caddy` in `docker-compose.override.yml`. Proxies on the same host or a private network are trusted automatically. If your proxy connects from a public address, list it in `TRUSTED_PROXIES`, otherwise every visitor is recorded with the proxy's IP. To check, compare `request.remote_ip` and `request.client_ip` in `docker compose logs betterlytics-selfhost`.
 
 Example with **Caddy**:
 
@@ -144,19 +159,19 @@ Serving a status page on its own domain? See [Custom status page domains](https:
 
 ### Plain HTTP or IP access
 
-Betterlytics accepts logins only from the exact URL it is configured for, `https://<DOMAIN>` by default. Your proxy must serve it over HTTPS at `DOMAIN`, including the port if it is not 443. If browsers reach the instance over plain HTTP (an IP address or an internal hostname on a trusted network), edit `.env` by hand:
+Betterlytics accepts logins only from the exact URL it is configured for, its `PUBLIC_URL`. Your proxy must serve it over HTTPS at that address, including the port if it is not 443. If browsers reach the instance over plain HTTP (an IP address or an internal hostname on a trusted network), edit `.env` by hand:
 
 ```
-DOMAIN=192.168.1.10:5566
-FORCE_HTTP_SCHEME=http
+PUBLIC_URL=http://192.168.1.10:5566
+TLS=off
 BIND_ADDRESS=0.0.0.0
 ```
 
-`DOMAIN` must include the port browsers use unless it is 80. Then run `docker compose up -d --wait`. Passwords and session cookies then travel unencrypted, so do this only on a network you trust. If the URL doesn't match, the sign-in page says the address doesn't match the configured one, and `docker compose logs betterlytics-selfhost` shows `[Better Auth]: Invalid origin: <origin>`.
+`PUBLIC_URL` must include the port browsers use unless it is 80. Then run `docker compose up -d --wait`. Passwords and session cookies then travel unencrypted, so do this only on a network you trust. If the URL doesn't match, the sign-in page says the address doesn't match the configured one, and `docker compose logs betterlytics-selfhost` shows `[Better Auth]: Invalid origin: <origin>`.
 
 ## Requirements
 
-- Docker Engine 25+ and Docker Compose v2.24+. The stack's healthcheck `start_interval` needs both ([details](https://betterlytics.io/docs/installation/self-hosting#requirements))
+- Docker Engine 25+ and Docker Compose v2.24+. The image's healthcheck start interval needs Engine 25 ([details](https://betterlytics.io/docs/installation/self-hosting#requirements))
 - An x86_64 (amd64) server. The image is not published for ARM (arm64), so ARM hosts fail with "no matching manifest"
 - A domain name pointed to your server
 - Ports 80/443 open (standalone mode) or a reverse proxy configured

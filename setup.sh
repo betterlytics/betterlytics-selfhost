@@ -38,13 +38,60 @@ validate_domain() {
     esac
 }
 
-# Basic mode always yields https://DOMAIN (base/.env.base PUBLIC_BASE_URL); auth rejects any other origin.
+# Basic mode always yields https://DOMAIN as PUBLIC_URL; auth rejects any other origin.
 validate_not_ip() {
     if printf '%s\n' "$1" | grep -qE '^[0-9]{1,3}(\.[0-9]{1,3}){3}(:[0-9]+)?$|^\[|:.*:'; then
         echo "  Error: Basic mode needs a domain name (e.g. analytics.example.com) that your"
         echo "         reverse proxy serves over HTTPS. Logins fail when Betterlytics is opened"
         echo "         by IP address or over plain HTTP. For that setup, see"
         echo "         \"Plain HTTP or IP access\" in the README."
+        return 1
+    fi
+}
+
+# Mirrors the container's PUBLIC_URL rules. $1 = host[:port], $2 = default port of the scheme.
+validate_host_port() {
+    case "$1" in
+        */*|*\?*|*\#*|*@*)
+            echo "  Error: Enter only the hostname, optionally followed by :port."
+            return 1
+            ;;
+    esac
+    case "$1" in
+        *:*)
+            _port="${1##*:}"
+            case "$_port" in
+                ''|*[!0-9]*|0*|??????*)
+                    echo "  Error: The port must be a number between 1 and 65535."
+                    return 1
+                    ;;
+            esac
+            if [ "$_port" = "$2" ]; then
+                echo "  Error: Leave out :$2, it is the default port."
+                return 1
+            fi
+            ;;
+    esac
+}
+
+# Standalone gets a certificate for exactly this name.
+validate_tls_host() {
+    case "$1" in
+        */*|*\?*|*\#*|*@*)
+            echo "  Error: Enter only the hostname."
+            return 1
+            ;;
+        *:*)
+            echo "  Error: Standalone mode needs a hostname without a port."
+            return 1
+            ;;
+        localhost|*.localhost)
+            echo "  Error: Standalone mode needs a public hostname, not localhost."
+            return 1
+            ;;
+    esac
+    if printf '%s\n' "$1" | grep -qE '^[0-9]{1,3}(\.[0-9]{1,3}){3}$'; then
+        echo "  Error: Standalone mode needs a hostname, not an IP address."
         return 1
     fi
 }
@@ -240,23 +287,20 @@ echo "  Domain & Network"
 echo "-------------------------------------------"
 echo ""
 
-FORCE_HTTP_SCHEME=""   # never inherit one from the operator's shell
-
 if [ "$DEPLOY_MODE" = "standalone" ]; then
-    HTTP_SCHEME="https"
+    TLS="auto"
     HTTP_PORT=80
-    HTTPS_PORT=443
     BIND_ADDRESS="0.0.0.0"
 
     while true; do
         printf "  Domain name (e.g. analytics.example.com): "
         read -r DOMAIN
-        validate_not_empty "$DOMAIN" "Domain" && validate_domain "$DOMAIN" && break
+        validate_not_empty "$DOMAIN" "Domain" && validate_domain "$DOMAIN" && validate_tls_host "$DOMAIN" && break
     done
+    PUBLIC_URL="https://${DOMAIN}"
 
 elif [ "$DEPLOY_MODE" = "basic" ]; then
-    HTTP_SCHEME="http"
-    HTTPS_PORT=443
+    TLS="off"
     BIND_ADDRESS="127.0.0.1"
 
     echo "  Use the hostname your reverse proxy serves over HTTPS."
@@ -265,8 +309,9 @@ elif [ "$DEPLOY_MODE" = "basic" ]; then
     while true; do
         printf "  Domain name (e.g. analytics.example.com): "
         read -r DOMAIN
-        validate_not_empty "$DOMAIN" "Domain" && validate_domain "$DOMAIN" && validate_not_ip "$DOMAIN" && break
+        validate_not_empty "$DOMAIN" "Domain" && validate_domain "$DOMAIN" && validate_not_ip "$DOMAIN" && validate_host_port "$DOMAIN" 443 && break
     done
+    PUBLIC_URL="https://${DOMAIN}"
 
     while true; do
         printf "  HTTP port (default: 5566): "
@@ -280,8 +325,7 @@ elif [ "$DEPLOY_MODE" = "basic" ]; then
 
 else
     # local mode
-    HTTP_SCHEME="http"
-    HTTPS_PORT=443
+    TLS="off"
     BIND_ADDRESS="127.0.0.1"
 
     while true; do
@@ -294,8 +338,12 @@ else
         validate_port "$PORT_INPUT" && HTTP_PORT="$PORT_INPUT" && break
     done
 
-    DOMAIN="localhost:${HTTP_PORT}"
-    FORCE_HTTP_SCHEME="http"
+    # The container rejects an explicit default port in PUBLIC_URL.
+    if [ "$HTTP_PORT" = "80" ]; then
+        PUBLIC_URL="http://localhost"
+    else
+        PUBLIC_URL="http://localhost:${HTTP_PORT}"
+    fi
 fi
 
 # =============================================
@@ -306,6 +354,21 @@ SECRET_BASE=$(generate_secret 64)
 if [ "${#SECRET_BASE}" -ne 64 ]; then
     echo "  Error: could not generate a random secret. Nothing was written."
     exit 1
+fi
+
+# --- Write docker-compose.override.yml ---
+# Written before .env: if this fails, no .env exists and setup can be run again.
+
+OVERRIDE_FILE="docker-compose.override.yml"
+if [ "$DEPLOY_MODE" = "standalone" ]; then
+    cat > "$OVERRIDE_FILE" <<EOF
+services:
+  betterlytics-selfhost:
+    ports:
+      - "${BIND_ADDRESS}:443:443"
+EOF
+else
+    rm -f "$OVERRIDE_FILE"
 fi
 
 cat > "$ENV_FILE" <<EOF
@@ -319,13 +382,12 @@ ENABLE_GEOLOCATION="false"
 MAXMIND_ACCOUNT_ID="xxxxx"
 MAXMIND_LICENSE_KEY="xxxxx"
 
-# --- Domain ---
-DOMAIN="${DOMAIN}"
+# --- Address ---
+PUBLIC_URL="${PUBLIC_URL}"
+TLS="${TLS}"
 
-# --- Proxy / HTTPS ---
-HTTP_SCHEME="${HTTP_SCHEME}"
+# --- Network (advanced) ---
 HTTP_PORT="${HTTP_PORT}"
-HTTPS_PORT="${HTTPS_PORT}"
 BIND_ADDRESS="${BIND_ADDRESS}"
 
 # --- Secret Base ---
@@ -333,31 +395,11 @@ SECRET_BASE="${SECRET_BASE}"
 
 EOF
 
-if [ -n "$FORCE_HTTP_SCHEME" ]; then
-    echo "FORCE_HTTP_SCHEME=${FORCE_HTTP_SCHEME}" >> "$ENV_FILE"
-    echo "" >> "$ENV_FILE"
-fi
-
-# --- Write docker-compose.override.yml ---
-
-OVERRIDE_FILE="docker-compose.override.yml"
-if [ "$DEPLOY_MODE" = "standalone" ]; then
-    cat > "$OVERRIDE_FILE" <<EOF
-services:
-  betterlytics-selfhost:
-    ports:
-      - "${BIND_ADDRESS}:${HTTPS_PORT}:443"
-EOF
-else
-    rm -f "$OVERRIDE_FILE"
-fi
-
 # =============================================
 #  Summary
 # =============================================
 
-# Same expression as PUBLIC_BASE_URL in base/.env.base, so the printed URL is the one auth accepts.
-ACCESS_URL="${FORCE_HTTP_SCHEME:-https}://${DOMAIN}"
+ACCESS_URL="${PUBLIC_URL}"
 
 echo ""
 echo "==========================================="
@@ -372,7 +414,7 @@ else
     _mode_label="Try locally (HTTP on localhost)"
 fi
 echo "  Mode:       ${_mode_label}"
-echo "  Domain:     ${DOMAIN}"
+echo "  Domain:     ${PUBLIC_URL#*://}"
 echo "  URL:        ${ACCESS_URL}"
 if [ "$DEPLOY_MODE" = "basic" ]; then
     echo "  Proxy to:   http://127.0.0.1:${HTTP_PORT}"
