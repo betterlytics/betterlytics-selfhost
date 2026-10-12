@@ -44,7 +44,8 @@ validate_not_ip() {
         echo "  Error: Basic mode needs a domain name (e.g. analytics.example.com) that your"
         echo "         reverse proxy serves over HTTPS. Logins fail when Betterlytics is opened"
         echo "         by IP address or over plain HTTP. For that setup, see"
-        echo "         \"Plain HTTP or IP access\" in the README."
+        echo "         \"Plain HTTP or IP Access\" in the Self-Hosting Guide:"
+        echo "         https://betterlytics.io/docs/installation/self-hosting"
         return 1
     fi
 }
