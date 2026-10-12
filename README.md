@@ -14,8 +14,7 @@
 
 ---
 
-Betterlytics is a modern, privacy-first analytics platform that provides powerful insights about your website traffic without compromising user privacy.
-This repository provides everything you need to deploy it on your own infrastructure using Docker. The platform itself is developed in the [main repository](https://github.com/betterlytics/betterlytics).
+This repository is the Docker setup for running [Betterlytics](https://betterlytics.io) on your own server. The platform itself is developed in the [main repository](https://github.com/betterlytics/betterlytics).
 
 > **Enjoying Betterlytics?** Give the [main repository](https://github.com/betterlytics/betterlytics) a star. It helps others find the project.
 
