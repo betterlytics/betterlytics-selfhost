@@ -14,8 +14,6 @@
 
 ---
 
-> **Enjoying Betterlytics?** Give the [main repository](https://github.com/betterlytics/betterlytics) a star. It helps others find the project.
-
 ## Documentation
 
 The [Self-Hosting Guide](https://betterlytics.io/docs/installation/self-hosting) has everything you need to run your own instance: requirements, deployment modes, the configuration reference, upgrading and troubleshooting.
@@ -44,3 +42,5 @@ docker compose up -d --wait
 ### 3. Create the first account
 
 Open your instance URL in a browser and create your account.
+
+> **Enjoying Betterlytics?** Give the [main repository](https://github.com/betterlytics/betterlytics) a star. It helps others find the project.
