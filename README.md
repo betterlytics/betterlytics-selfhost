@@ -22,6 +22,12 @@ The [Self-Hosting Guide](https://betterlytics.io/docs/installation/self-hosting)
 
 Rather skip the reading? These three steps get an instance running.
 
+> [!NOTE]
+> **Prerequisites**
+> - Docker Engine 25+ and Docker Compose v2.24+
+> - An x86_64 (amd64) server. The image is not published for ARM
+> - A domain name pointed to your server, with ports 80 and 443 open or a reverse proxy in front
+
 ### 1. Configure
 
 Run the interactive setup script to generate a `.env` file:
@@ -32,6 +38,9 @@ chmod +x setup.sh
 ```
 
 Or copy `.env.example` to `.env` and fill in the values manually.
+
+> [!TIP]
+> Just want to try it out? Pick **Try locally** in the setup script to run the instance on `http://localhost:5566`, no domain or HTTPS needed.
 
 ### 2. Deploy
 
