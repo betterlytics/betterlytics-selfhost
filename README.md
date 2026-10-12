@@ -14,8 +14,6 @@
 
 ---
 
-This repository is the Docker setup for running [Betterlytics](https://betterlytics.io) on your own server. The platform itself is developed in the [main repository](https://github.com/betterlytics/betterlytics).
-
 > **Enjoying Betterlytics?** Give the [main repository](https://github.com/betterlytics/betterlytics) a star. It helps others find the project.
 
 ## Documentation
