@@ -10,7 +10,6 @@ This repository provides everything you need to deploy Betterlytics on your own 
 Run the interactive setup script to generate a `.env` file:
 
 ```bash
-chmod +x setup.sh
 ./setup.sh
 ```
 
