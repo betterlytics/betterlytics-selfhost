@@ -12,14 +12,15 @@ services:
     env_file:
       - ./base/.env.base
     environment:
-      - DOMAIN
-      - HTTP_SCHEME
-      - HTTP_PORT
-      - HTTPS_PORT
-      - BIND_ADDRESS
+      - PUBLIC_URL
+      - TLS
+      - HTTP_PORT # read by the TLS=auto start-up check
+      - DOMAIN # retired; only for the upgrade message
+      - HTTP_SCHEME # retired; only for the upgrade message
+      - FORCE_HTTP_SCHEME # retired; only for the upgrade message
+      - SKIP_VERSION_CHECK
       - TRUSTED_PROXIES # optional; extra proxy IPs/CIDRs whose X-Forwarded-For Caddy trusts
       - AUTH_TRUSTED_PROXIES # optional; behind your own proxy, its IPs/CIDRs so sign-in rate limits apply per visitor
-      - FORCE_HTTP_SCHEME
       - SSL_EMAIL
       - ACME_CA # optional; Let's Encrypt staging for tests
       - SECRET_BASE
@@ -36,8 +37,10 @@ services:
       - MAXMIND_LICENSE_KEY
       - GEOLOCATION_MODE
       - PUBLIC_ENABLE_FAVICON_FETCHING # optional; false stops server-side icon fetches from DuckDuckGo
-      - BACKGROUND_JOBS_ENABLED=${BACKGROUND_JOBS_ENABLED:-true}
+      - BACKGROUND_JOBS_ENABLED
+      - LOG_LEVEL
       - PUSHOVER_APP_TOKEN
+      - SESSION_REPLAYS_ENABLED
       - REPLAY_STORAGE
       - REPLAY_RETENTION_DAYS
       - DATA_RETENTION_DAYS # retired; only for the boot warning
@@ -49,7 +52,7 @@ services:
       - S3_SECRET_ACCESS_KEY
       - S3_FORCE_PATH_STYLE
       - S3_SSE_ENABLED
-      - ALLOW_PRIVATE_TARGETS=${ALLOW_PRIVATE_TARGETS:-true}
+      - ALLOW_PRIVATE_TARGETS
     extra_hosts:
       - "host.docker.internal:host-gateway"
     restart: unless-stopped
@@ -57,29 +60,9 @@ services:
     ports:
       - "${BIND_ADDRESS:-127.0.0.1}:${HTTP_PORT:-5566}:80"
     volumes:
-      - ./base/proxy:/etc/caddy:ro
-      - ./base/supervisord.conf:/etc/supervisor/conf.d/betterlytics.conf:ro
       - ./base/derive.sh:/derive.sh:ro
-      - ./base/secrets-env.sh:/secrets-env.sh:ro
-      - ./base/entrypoint.sh:/entrypoint.sh:ro
       - betterlytics_selfhost_caddy_data:/data # certs + ACME account (XDG_DATA_HOME)
       - betterlytics_selfhost_geoip:/app/backend/assets/geoip
-    entrypoint: ["/bin/sh", "/entrypoint.sh"]
-    healthcheck:
-      test:
-        - CMD-SHELL
-        - >-
-          if [ "$$HTTP_SCHEME" = "https" ]; then
-            curl -fsk -o /dev/null --resolve "$$DOMAIN:443:127.0.0.1" "https://$$DOMAIN/";
-          else
-            curl -fs -o /dev/null http://localhost/;
-          fi
-          && curl -fs -o /dev/null http://127.0.0.1:3001/health
-      interval: 30s
-      timeout: 5s
-      retries: 3
-      start_period: 120s # first HTTPS boot waits on ACME
-      start_interval: 5s
     depends_on:
       betterlytics-init:
         condition: service_completed_successfully
@@ -98,19 +81,25 @@ services:
     image: *betterlytics-image
     container_name: betterlytics-init
     restart: "no"
+    command: ["init"]
+    healthcheck:
+      disable: true # the image healthcheck probes the running app
     env_file:
       - ./base/.env.base
     environment:
       - SECRET_BASE
       - SKIP_VERSION_CHECK
+      - PUBLIC_URL # checked here too, so a bad address stops before migrations
+      - TLS
+      - HTTP_PORT
+      - DOMAIN # retired; only for the upgrade message
+      - HTTP_SCHEME # retired; only for the upgrade message
+      - FORCE_HTTP_SCHEME # retired; only for the upgrade message
       - REPLAY_STORAGE
       - REPLAY_RETENTION_DAYS # ClickHouse replay TTL is set during migration
       - DATA_RETENTION_DAYS # carried over once to dashboards at the 1 year default
     volumes:
       - ./base/derive.sh:/derive.sh:ro
-      - ./base/secrets-env.sh:/secrets-env.sh:ro
-      - ./base/init-entrypoint.sh:/init-entrypoint.sh:ro
-    entrypoint: ["/bin/sh", "/init-entrypoint.sh"]
     depends_on:
       postgres:
         condition: service_healthy
