@@ -1,20 +1,44 @@
-# Betterlytics - Self-Hosted
+<div align="center">
 
-Betterlytics is a modern, privacy-first analytics platform that provides powerful insights about your website traffic without compromising user privacy.
-This repository provides everything you need to deploy Betterlytics on your own infrastructure using Docker.
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset=".github/assets/betterlytics-logo-full-inline-light.svg">
+  <source media="(prefers-color-scheme: light)" srcset=".github/assets/betterlytics-logo-full-inline-dark.svg">
+  <img alt="Betterlytics" src=".github/assets/betterlytics-logo-full-inline-dark.svg" width="320">
+</picture>
+
+**Self-host Betterlytics with Docker**
+
+[Main repository](https://github.com/betterlytics/betterlytics) | [Self-Hosting Guide](https://betterlytics.io/docs/installation/self-hosting) | [Website](https://betterlytics.io)
+
+</div>
+
+---
+
+## Documentation
+
+The [Self-Hosting Guide](https://betterlytics.io/docs/installation/self-hosting) has everything you need to run your own instance: requirements, deployment modes, the configuration reference, upgrading and troubleshooting.
+
+## Prerequisites
+
+- Docker Engine 25+ and Docker Compose v2.24+
+- At least 2 GB of RAM and 10 GB of free disk space
 
 ## Quick Start
+
+Rather skip the reading? These three steps get an instance running.
 
 ### 1. Configure
 
 Run the interactive setup script to generate a `.env` file:
 
 ```bash
-chmod +x setup.sh
 ./setup.sh
 ```
 
 Or copy `.env.example` to `.env` and fill in the values manually.
+
+> [!TIP]
+> Just want to try it out? Pick **Try locally** in the setup script to run locally.
 
 ### 2. Deploy
 
@@ -26,141 +50,12 @@ docker compose up -d --wait
 
 Open your instance URL in a browser and create your account.
 
-## Deployment Modes
+---
 
-### Standalone (automatic HTTPS, recommended for a public server)
+<div align="center">
 
-The container is the public endpoint and provisions and renews its own Let's Encrypt certificate. This is the default in `setup.sh`.
+If you find Betterlytics useful, consider giving it a star!
 
-Ports 80 and 443 must be reachable from the internet.
+[![GitHub stars](https://img.shields.io/github/stars/betterlytics/betterlytics?style=social)](https://github.com/betterlytics/betterlytics)
 
-Configuring by hand? See [Standalone](https://betterlytics.io/docs/installation/self-hosting#standalone) in the Self-Hosting Guide.
-
-## Upgrading
-
-Each release bumps the image version in `docker-compose.yml`, so updating this
-repository is what upgrades your instance:
-
-```bash
-git pull
-docker compose up -d --wait
-```
-
-Compose pulls the new image on its own. Read the release notes first for
-version-specific steps such as backups or disk space.
-
-### Upgrading from v1.3.5 or earlier
-
-This release includes one-time ClickHouse migrations that rewrite the events
-table. Before upgrading:
-
-- Ensure free disk space of at least 2–3× the size of your ClickHouse data
-  volume (the events table is rewritten twice; space is reclaimed at the end).
-- Expect a long first boot on large installations. Do not interrupt the
-  `betterlytics-init` container while migrations run.
-- Back up your ClickHouse and Postgres volumes first.
-
-## Configuration Reference
-
-| Variable                   | Description                                              | Default |
-| -------------------------- | -------------------------------------------------------- | ------- |
-| `DOMAIN`                   | Domain where your instance is accessible (no protocol). Include the port if browsers use a non-standard one (`host:8443`) |         |
-| `SESSION_REPLAYS_ENABLED`  | Enable Session Replay                                    | `true`  |
-| `REPLAY_RETENTION_DAYS`    | Days to keep session replays, `-1` for indefinitely      | `60`    |
-| `HTTP_SCHEME`              | `http` or `https`, built-in Let's Encrypt when `https`   | `http`  |
-| `FORCE_HTTP_SCHEME`        | `http` only when browsers reach the instance over plain HTTP; sets the scheme of the public URL used for logins and the tracking snippet | `https` |
-| `SSL_EMAIL`                | Optional email for the Let's Encrypt account             |         |
-| `ACME_CA`                  | Optional ACME directory URL (e.g. Let's Encrypt staging) |         |
-| `SECRET_BASE`              | Single secret all passwords and auth keys derive from; at least 32 random characters. An empty value, `CHANGEME` or a shorter one logs a warning at every start |         |
-| `ENABLE_EMAILS`            | Enable sending emails                                    | `false` |
-| `MAILER_SEND_API_TOKEN`    | MailerSend API token (no SMTP server config needed if set) |       |
-| `SMTP_HOST`                | SMTP server hostname                                     |         |
-| `SMTP_PORT`                | SMTP server port                                         |         |
-| `SMTP_USER`                | SMTP username                                            |         |
-| `SMTP_PASSWORD`            | SMTP password                                            |         |
-| `SMTP_FROM`                | Sender for all outgoing mail, `Name <address>` or a bare address. Required when `ENABLE_EMAILS=true` (SMTP and MailerSend) |         |
-| `ENABLE_GEOLOCATION`       | Enable IP geolocation (requires MaxMind)                 | `false` |
-| `MAXMIND_ACCOUNT_ID`       | MaxMind account ID                                       |         |
-| `MAXMIND_LICENSE_KEY`      | MaxMind license key                                      |         |
-| `GEOLOCATION_MODE`         | `country` (~9 MB DB) or `full` for city/region (~61 MB)  | `country` |
-| `ENABLE_ASN_LOOKUP`        | Visitor network (ASN) lookup for bot detection, needs the MaxMind credentials | `false` |
-| `BACKGROUND_JOBS_ENABLED`  | Background worker: all outgoing email and data-retention cleanup; `false` stops both | `true`  |
-| `PUBLIC_ENABLE_FAVICON_FETCHING` | Fetch site icons from DuckDuckGo (server-side); `false` stops these requests | `true`  |
-| `LOG_LEVEL`                | Backend log level: `error`, `warn`, `info`, `debug`, `trace` | `info`  |
-| `PUSHOVER_APP_TOKEN`       | Pushover app token for uptime alert integrations         |         |
-| `ALLOW_PRIVATE_TARGETS`    | Monitors and webhooks may reach private/LAN addresses on any port. Loopback and link-local are always blocked; reach services on the Docker host through its LAN IP or `host.docker.internal` | `true`  |
-| `HTTP_PORT`                | Exposed HTTP port, must be `80` when `HTTP_SCHEME=https` | `5566`  |
-| `HTTPS_PORT`               | Exposed HTTPS port (mapped by `setup.sh` Standalone)     | `443`   |
-| `BIND_ADDRESS`             | Host address to bind the exposed ports to                | `127.0.0.1` |
-| `TRUSTED_PROXIES`          | Extra proxy IPs/CIDRs whose `X-Forwarded-For` is trusted |         |
-| `AUTH_TRUSTED_PROXIES`     | Behind your own proxy: the IPs/CIDRs it connects from, so sign-in rate limits apply per visitor |         |
-
-All database passwords and auth secrets are derived automatically from `SECRET_BASE`. You only need to set one secret. Use at least 32 random characters (`setup.sh` generates 64, or use `openssl rand -hex 32`) and set it before the first start: the databases are created with passwords derived from it, so changing it later locks the app out of existing data. If `docker compose logs betterlytics-selfhost` shows a `SECRET_BASE` warning on an instance that holds no data yet, run `docker compose down -v`, set a new value and start again.
-
-### Behind a Reverse Proxy
-
-Set `HTTP_SCHEME=http` and bind to localhost on a non-standard port so you don't expose port 80 directly:
-
-```
-HTTP_SCHEME=http
-BIND_ADDRESS=127.0.0.1
-HTTP_PORT=5566
-```
-
-Then point your reverse proxy to that port. Proxies on the same host or a private network are trusted automatically. If your proxy connects from a public address, list it in `TRUSTED_PROXIES`, otherwise every visitor is recorded with the proxy's IP. To check, compare `request.remote_ip` and `request.client_ip` in `docker compose logs betterlytics-selfhost`.
-
-Example with **Caddy**:
-
-```
-analytics.example.com {
-    reverse_proxy 127.0.0.1:5566
-}
-```
-
-Example with **NGINX**:
-
-```nginx
-server {
-    listen 443 ssl;
-    server_name analytics.example.com;
-
-    ssl_certificate     /etc/letsencrypt/live/analytics.example.com/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/analytics.example.com/privkey.pem;
-
-    # Session replay uploads are up to 6 MB; nginx's 1 MB default returns 413 and stops recording.
-    client_max_body_size 6m;
-
-    location / {
-        proxy_pass http://127.0.0.1:5566;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-}
-```
-
-Serving a status page on its own domain? See [Custom status page domains](https://betterlytics.io/docs/installation/self-hosting#custom-status-page-domains) in the Self-Hosting Guide.
-
-### Plain HTTP or IP access
-
-Betterlytics accepts logins only from the exact URL it is configured for, `https://<DOMAIN>` by default. Your proxy must serve it over HTTPS at `DOMAIN`, including the port if it is not 443. If browsers reach the instance over plain HTTP (an IP address or an internal hostname on a trusted network), edit `.env` by hand:
-
-```
-DOMAIN=192.168.1.10:5566
-FORCE_HTTP_SCHEME=http
-BIND_ADDRESS=0.0.0.0
-```
-
-`DOMAIN` must include the port browsers use unless it is 80. Then run `docker compose up -d --wait`. Passwords and session cookies then travel unencrypted, so do this only on a network you trust. If the URL doesn't match, the sign-in page says the address doesn't match the configured one, and `docker compose logs betterlytics-selfhost` shows `[Better Auth]: Invalid origin: <origin>`.
-
-## Requirements
-
-- Docker Engine 25+ and Docker Compose v2.24+. The stack's healthcheck `start_interval` needs both ([details](https://betterlytics.io/docs/installation/self-hosting#requirements))
-- An x86_64 (amd64) server. The image is not published for ARM (arm64), so ARM hosts fail with "no matching manifest"
-- A domain name pointed to your server
-- Ports 80/443 open (standalone mode) or a reverse proxy configured
-
-## Documentation
-
-For detailed instructions, advanced configuration, and troubleshooting, see the [Self-Hosting Guide](https://betterlytics.io/docs/installation/self-hosting).
+</div>
