@@ -21,7 +21,6 @@ The [Self-Hosting Guide](https://betterlytics.io/docs/installation/self-hosting)
 ## Prerequisites
 
 - Docker Engine 25+ and Docker Compose v2.24+
-- A 64-bit Intel or AMD machine (x86_64). ARM machines such as Apple Silicon Macs and Raspberry Pi are not supported yet
 - At least 2 GB of RAM and 10 GB of free disk space
 
 ## Quick Start
