@@ -18,21 +18,21 @@
 
 The [Self-Hosting Guide](https://betterlytics.io/docs/installation/self-hosting) has everything you need to run your own instance: requirements, deployment modes, the configuration reference, upgrading and troubleshooting.
 
+## Prerequisites
+
+- Docker Engine 25+ and Docker Compose v2.24+
+- A 64-bit Intel or AMD machine (x86_64). ARM machines such as Apple Silicon Macs and Raspberry Pi are not supported yet
+- At least 2 GB of RAM and 10 GB of free disk space
+
 ## Quick Start
 
 Rather skip the reading? These three steps get an instance running.
-
-> [!NOTE]
-> **Prerequisites**
-> - Docker Engine 25+ and Docker Compose v2.24+
-> - An x86_64 (amd64) machine. The image is not published for ARM
 
 ### 1. Configure
 
 Run the interactive setup script to generate a `.env` file:
 
 ```bash
-chmod +x setup.sh
 ./setup.sh
 ```
 
