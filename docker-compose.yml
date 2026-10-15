@@ -97,7 +97,6 @@ services:
       - DOMAIN # retired; only for the upgrade message
       - HTTP_SCHEME # retired; only for the upgrade message
       - FORCE_HTTP_SCHEME # retired; only for the upgrade message
-      - REPLAY_STORAGE
       - REPLAY_RETENTION_DAYS # ClickHouse replay TTL is set during migration
       - DATA_RETENTION_DAYS # carried over once to dashboards at the 1 year default
     volumes:
