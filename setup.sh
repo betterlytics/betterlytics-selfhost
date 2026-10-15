@@ -378,6 +378,9 @@ else
     rm -f "$OVERRIDE_FILE"
 fi
 
+# .env holds SECRET_BASE: owner-only from the first byte, chmod as a backstop.
+(
+umask 077
 cat > "$ENV_FILE" <<EOF
 # ===========================================
 # Betterlytics Self-Hosted Configuration
@@ -401,6 +404,8 @@ BIND_ADDRESS="${BIND_ADDRESS}"
 SECRET_BASE="${SECRET_BASE}"
 
 EOF
+)
+chmod 600 "$ENV_FILE"
 
 # =============================================
 #  Summary

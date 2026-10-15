@@ -35,7 +35,11 @@ Run the interactive setup script to generate a `.env` file:
 ./setup.sh
 ```
 
-Or copy `.env.example` to `.env` and fill in the values manually.
+Or copy `.env.example` to `.env` and fill in the values manually. `.env` holds the secret every password is derived from, so make it readable by its owner only, and run `docker compose` as that same user:
+
+```bash
+chmod 600 .env
+```
 
 > [!TIP]
 > Just want to try it out? Pick **Try locally** in the setup script to run locally.
