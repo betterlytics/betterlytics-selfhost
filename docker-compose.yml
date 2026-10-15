@@ -135,7 +135,7 @@ services:
     logging: *default-logging
 
   clickhouse:
-    image: clickhouse/clickhouse-server:25.8
+    image: clickhouse/clickhouse-server:25.8.33.6 # exact version: a bump restarts ClickHouse on update, which is when config.xml changes apply
     user: 101:101
     container_name: betterlytics-clickhouse
     restart: unless-stopped
