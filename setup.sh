@@ -362,11 +362,17 @@ fi
 
 OVERRIDE_FILE="docker-compose.override.yml"
 if [ "$DEPLOY_MODE" = "standalone" ]; then
+    # BL_HTTPS_PUBLISHED tells the TLS=auto start-up check (run by init too) that 443 is mapped.
     cat > "$OVERRIDE_FILE" <<EOF
 services:
   betterlytics-selfhost:
     ports:
       - "${BIND_ADDRESS}:443:443"
+    environment:
+      - BL_HTTPS_PUBLISHED=true
+  betterlytics-init:
+    environment:
+      - BL_HTTPS_PUBLISHED=true
 EOF
 else
     rm -f "$OVERRIDE_FILE"

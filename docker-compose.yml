@@ -15,6 +15,7 @@ services:
       - PUBLIC_URL
       - TLS
       - HTTP_PORT # read by the TLS=auto start-up check
+      - BIND_ADDRESS # read by the TLS=auto start-up check
       - DOMAIN # retired; only for the upgrade message
       - HTTP_SCHEME # retired; only for the upgrade message
       - FORCE_HTTP_SCHEME # retired; only for the upgrade message
@@ -92,6 +93,7 @@ services:
       - PUBLIC_URL # checked here too, so a bad address stops before migrations
       - TLS
       - HTTP_PORT
+      - BIND_ADDRESS
       - DOMAIN # retired; only for the upgrade message
       - HTTP_SCHEME # retired; only for the upgrade message
       - FORCE_HTTP_SCHEME # retired; only for the upgrade message
