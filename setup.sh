@@ -10,7 +10,8 @@ ENV_FILE=".env"
 # --- Helpers ---
 
 generate_secret() {
-    tr -dc 'A-Za-z0-9' < /dev/urandom | head -c "$1"
+    # LC_ALL=C: under a UTF-8 locale, BSD tr (macOS) can stop on invalid byte sequences and return a short or empty string
+    LC_ALL=C tr -dc 'A-Za-z0-9' < /dev/urandom | head -c "$1"
 }
 
 # Validators return 0 on success, 1 on failure (and print the error message).
@@ -37,15 +38,63 @@ validate_domain() {
     esac
 }
 
-validate_email() {
+# Basic mode always yields https://DOMAIN as PUBLIC_URL; auth rejects any other origin.
+validate_not_ip() {
+    if printf '%s\n' "$1" | grep -qE '^[0-9]{1,3}(\.[0-9]{1,3}){3}(:[0-9]+)?$|^\[|:.*:'; then
+        echo "  Error: Basic mode needs a domain name (e.g. analytics.example.com) that your"
+        echo "         reverse proxy serves over HTTPS. Logins fail when Betterlytics is opened"
+        echo "         by IP address or over plain HTTP. For that setup, see"
+        echo "         \"Plain HTTP or IP Access\" in the Self-Hosting Guide:"
+        echo "         https://betterlytics.io/docs/installation/self-hosting"
+        return 1
+    fi
+}
+
+# Mirrors the container's PUBLIC_URL rules. $1 = host[:port], $2 = default port of the scheme.
+validate_host_port() {
     case "$1" in
-        *@*.*)
-            ;;
-        *)
-            echo "  Error: Invalid email address."
+        */*|*\?*|*\#*|*@*)
+            echo "  Error: Enter only the hostname, optionally followed by :port."
             return 1
             ;;
     esac
+    case "$1" in
+        *:*)
+            _port="${1##*:}"
+            case "$_port" in
+                ''|*[!0-9]*|0*|??????*)
+                    echo "  Error: The port must be a number between 1 and 65535."
+                    return 1
+                    ;;
+            esac
+            if [ "$_port" = "$2" ]; then
+                echo "  Error: Leave out :$2, it is the default port."
+                return 1
+            fi
+            ;;
+    esac
+}
+
+# Standalone gets a certificate for exactly this name.
+validate_tls_host() {
+    case "$1" in
+        */*|*\?*|*\#*|*@*)
+            echo "  Error: Enter only the hostname."
+            return 1
+            ;;
+        *:*)
+            echo "  Error: Standalone mode needs a hostname without a port."
+            return 1
+            ;;
+        localhost|*.localhost)
+            echo "  Error: Standalone mode needs a public hostname, not localhost."
+            return 1
+            ;;
+    esac
+    if printf '%s\n' "$1" | grep -qE '^[0-9]{1,3}(\.[0-9]{1,3}){3}$'; then
+        echo "  Error: Standalone mode needs a hostname, not an IP address."
+        return 1
+    fi
 }
 
 validate_port() {
@@ -59,6 +108,28 @@ validate_port() {
         echo "  Error: Port must be between 1 and 65535."
         return 1
     fi
+}
+
+print_banner() {
+    if [ -t 1 ] && [ -z "${NO_COLOR:-}" ]; then
+        _b=$(printf '\033[38;2;32;115;188m'); _r=$(printf '\033[0m')
+    else
+        _b=''; _r=''
+    fi
+    cat <<EOF
+  ██████╗ ███████╗████████╗████████╗███████╗██████╗
+  ██╔══██╗██╔════╝╚══██╔══╝╚══██╔══╝██╔════╝██╔══██╗
+  ██████╔╝█████╗     ██║      ██║   █████╗  ██████╔╝
+  ██╔══██╗██╔══╝     ██║      ██║   ██╔══╝  ██╔══██╗
+  ██████╔╝███████╗   ██║      ██║   ███████╗██║  ██║
+  ╚═════╝ ╚══════╝   ╚═╝      ╚═╝   ╚══════╝╚═╝  ╚═╝
+  ${_b}██╗  ██╗   ██╗████████╗██╗ ██████╗███████╗${_r}
+  ${_b}██║  ╚██╗ ██╔╝╚══██╔══╝██║██╔════╝██╔════╝${_r}
+  ${_b}██║   ╚████╔╝    ██║   ██║██║     ███████╗${_r}
+  ${_b}██║    ╚██╔╝     ██║   ██║██║     ╚════██║${_r}
+  ${_b}███████╗██║      ██║   ██║╚██████╗███████║${_r}
+  ${_b}╚══════╝╚═╝      ╚═╝   ╚═╝ ╚═════╝╚══════╝${_r}
+EOF
 }
 
 # --- Arrow-key menu selector ---
@@ -167,20 +238,16 @@ menu_select() {
 
 # --- Pre-flight check ---
 
-if [ -f "$ENV_FILE" ]; then
+if [ -e "$ENV_FILE" ]; then
     echo ""
-    echo "  A .env file already exists. (Use ▲/▼ to select, Enter to confirm)"
+    echo "  Setup is for first-time installation only."
+    echo "  Existing configuration found; nothing was changed."
+    echo "  Replacing this configuration can break your existing installation."
     echo ""
-
-    menu_select \
-        "Cancel"    "Keep the current .env and exit" \
-        "Overwrite" "Replace the existing configuration"
-
-    if [ "$MENU_RESULT" -eq 0 ]; then
-        echo ""
-        echo "  Aborted."
-        exit 0
-    fi
+    echo "  To upgrade, follow the Self-Hosting Guide:"
+    echo "  https://betterlytics.io/docs/installation/self-hosting"
+    echo ""
+    exit 1
 fi
 
 # =============================================
@@ -188,9 +255,9 @@ fi
 # =============================================
 
 echo ""
-echo "==========================================="
-echo "  Betterlytics  -  Self-Hosted Setup"
-echo "==========================================="
+print_banner
+echo ""
+echo "  Self-Hosted Setup"
 echo ""
 
 # =============================================
@@ -222,27 +289,30 @@ echo "-------------------------------------------"
 echo ""
 
 if [ "$DEPLOY_MODE" = "standalone" ]; then
-    HTTP_SCHEME="https"
+    TLS="auto"
     HTTP_PORT=80
-    HTTPS_PORT=443
     BIND_ADDRESS="0.0.0.0"
 
     while true; do
         printf "  Domain name (e.g. analytics.example.com): "
         read -r DOMAIN
-        validate_not_empty "$DOMAIN" "Domain" && validate_domain "$DOMAIN" && break
+        validate_not_empty "$DOMAIN" "Domain" && validate_domain "$DOMAIN" && validate_tls_host "$DOMAIN" && break
     done
+    PUBLIC_URL="https://${DOMAIN}"
 
 elif [ "$DEPLOY_MODE" = "basic" ]; then
-    HTTP_SCHEME="http"
-    HTTPS_PORT=443
-    BIND_ADDRESS="0.0.0.0"
+    TLS="off"
+    BIND_ADDRESS="127.0.0.1"
 
+    echo "  Use the hostname your reverse proxy serves over HTTPS."
+    echo "  Add :port if the proxy serves HTTPS on a port other than 443."
+    echo ""
     while true; do
         printf "  Domain name (e.g. analytics.example.com): "
         read -r DOMAIN
-        validate_not_empty "$DOMAIN" "Domain" && validate_domain "$DOMAIN" && break
+        validate_not_empty "$DOMAIN" "Domain" && validate_domain "$DOMAIN" && validate_not_ip "$DOMAIN" && validate_host_port "$DOMAIN" 443 && break
     done
+    PUBLIC_URL="https://${DOMAIN}"
 
     while true; do
         printf "  HTTP port (default: 5566): "
@@ -256,8 +326,7 @@ elif [ "$DEPLOY_MODE" = "basic" ]; then
 
 else
     # local mode
-    HTTP_SCHEME="http"
-    HTTPS_PORT=443
+    TLS="off"
     BIND_ADDRESS="127.0.0.1"
 
     while true; do
@@ -270,110 +339,79 @@ else
         validate_port "$PORT_INPUT" && HTTP_PORT="$PORT_INPUT" && break
     done
 
-    DOMAIN="localhost:${HTTP_PORT}"
+    # The container rejects an explicit default port in PUBLIC_URL.
+    if [ "$HTTP_PORT" = "80" ]; then
+        PUBLIC_URL="http://localhost"
+    else
+        PUBLIC_URL="http://localhost:${HTTP_PORT}"
+    fi
 fi
-
-# =============================================
-#  Step 3: Dashboard Admin Account
-# =============================================
-
-echo ""
-echo "-------------------------------------------"
-echo "  Dashboard Admin Account"
-echo "-------------------------------------------"
-echo ""
-
-while true; do
-    printf "  Email: "
-    read -r ADMIN_EMAIL
-    validate_not_empty "$ADMIN_EMAIL" "Admin email" && validate_email "$ADMIN_EMAIL" && break
-done
-
-while true; do
-    printf "  Password: "
-    stty -echo
-    read -r ADMIN_PASSWORD
-    stty echo
-    echo ""
-    validate_not_empty "$ADMIN_PASSWORD" "Admin password" && break
-done
 
 # =============================================
 #  Generate & Write Configuration
 # =============================================
 
 SECRET_BASE=$(generate_secret 64)
+if [ "${#SECRET_BASE}" -ne 64 ]; then
+    echo "  Error: could not generate a random secret. Nothing was written."
+    exit 1
+fi
 
+# --- Write docker-compose.override.yml ---
+# Written before .env: if this fails, no .env exists and setup can be run again.
+
+OVERRIDE_FILE="docker-compose.override.yml"
+if [ "$DEPLOY_MODE" = "standalone" ]; then
+    # BL_HTTPS_PUBLISHED tells the TLS=auto start-up check (run by init too) that 443 is mapped.
+    cat > "$OVERRIDE_FILE" <<EOF
+services:
+  betterlytics-selfhost:
+    ports:
+      - "${BIND_ADDRESS}:443:443"
+    environment:
+      - BL_HTTPS_PUBLISHED=true
+  betterlytics-init:
+    environment:
+      - BL_HTTPS_PUBLISHED=true
+EOF
+else
+    rm -f "$OVERRIDE_FILE"
+fi
+
+# .env holds SECRET_BASE: owner-only from the first byte, chmod as a backstop.
+(
+umask 077
 cat > "$ENV_FILE" <<EOF
 # ===========================================
 # Betterlytics Self-Hosted Configuration
 # Generated by setup.sh
 # ===========================================
 
-# --- Admin Account ---
-ADMIN_EMAIL="${ADMIN_EMAIL}"
-ADMIN_PASSWORD="${ADMIN_PASSWORD}"
-
-# --- General ---
-DEFAULT_LANGUAGE="en"
-ENABLE_UPTIME_MONITORING="false"
-
 # --- Geolocation ---
 ENABLE_GEOLOCATION="false"
 MAXMIND_ACCOUNT_ID="xxxxx"
 MAXMIND_LICENSE_KEY="xxxxx"
 
-# --- Domain ---
-DOMAIN="${DOMAIN}"
+# --- Address ---
+PUBLIC_URL="${PUBLIC_URL}"
+TLS="${TLS}"
 
-# --- Proxy / HTTPS ---
-HTTP_SCHEME="${HTTP_SCHEME}"
+# --- Network (advanced) ---
 HTTP_PORT="${HTTP_PORT}"
-HTTPS_PORT="${HTTPS_PORT}"
 BIND_ADDRESS="${BIND_ADDRESS}"
 
 # --- Secret Base ---
 SECRET_BASE="${SECRET_BASE}"
 
 EOF
-
-if [ "$DEPLOY_MODE" = "local" ]; then
-    echo "FORCE_HTTP_SCHEME=http" >> "$ENV_FILE"
-    echo "" >> "$ENV_FILE"
-fi
-
-# --- Write docker-compose.override.yml ---
-
-OVERRIDE_FILE="docker-compose.override.yml"
-if [ "$DEPLOY_MODE" = "standalone" ]; then
-    cat > "$OVERRIDE_FILE" <<EOF
-services:
-  betterlytics-selfhost:
-    ports:
-      - "${BIND_ADDRESS}:${HTTPS_PORT}:443"
-EOF
-else
-    rm -f "$OVERRIDE_FILE"
-fi
+)
+chmod 600 "$ENV_FILE"
 
 # =============================================
 #  Summary
 # =============================================
 
-# Build the access URL
-if [ "$DEPLOY_MODE" = "standalone" ]; then
-    ACCESS_URL="https://${DOMAIN}"
-elif [ "$DEPLOY_MODE" = "local" ]; then
-    ACCESS_URL="http://${DOMAIN}"
-elif echo "$DOMAIN" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$'; then
-    if [ "$HTTP_PORT" = "80" ]; then
-        ACCESS_URL="http://${DOMAIN}"
-    else
-        ACCESS_URL="http://${DOMAIN}:${HTTP_PORT}"
-    fi
-else
-    ACCESS_URL="https://${DOMAIN}"
-fi
+ACCESS_URL="${PUBLIC_URL}"
 
 echo ""
 echo "==========================================="
@@ -388,9 +426,11 @@ else
     _mode_label="Try locally (HTTP on localhost)"
 fi
 echo "  Mode:       ${_mode_label}"
-echo "  Domain:     ${DOMAIN}"
-echo "  Admin:      ${ADMIN_EMAIL}"
+echo "  Domain:     ${PUBLIC_URL#*://}"
 echo "  URL:        ${ACCESS_URL}"
+if [ "$DEPLOY_MODE" = "basic" ]; then
+    echo "  Proxy to:   http://127.0.0.1:${HTTP_PORT}"
+fi
 echo ""
 echo "-------------------------------------------"
 echo "  Next steps"
@@ -401,22 +441,17 @@ echo ""
 echo "     docker compose up -d --wait"
 echo ""
 echo "  2. Open ${ACCESS_URL} in your browser"
-echo "     and log in with your admin credentials."
+echo "     and create your account."
+echo "     The first account created becomes"
+echo "     the admin."
 echo ""
 echo "-------------------------------------------"
 echo "  Optional configuration"
 echo "-------------------------------------------"
 echo ""
-echo "  Geolocation (IP to country/city):"
-echo "    Requires a free MaxMind account."
-echo "    Set these in your .env file:"
-echo "      ENABLE_GEOLOCATION=true"
-echo "      MAXMIND_ACCOUNT_ID=your_id"
-echo "      MAXMIND_LICENSE_KEY=your_key"
+echo "  Geolocation, email notifications and more"
+echo "  can be set up at any time. See the"
+echo "  Self-Hosting Guide:"
 echo ""
-echo "  Email notifications:"
-echo "    Set ENABLE_EMAILS=true and configure"
-echo "    SMTP or MailerSend in your .env file."
-echo ""
-echo "  See .env.example for all available options."
+echo "  https://betterlytics.io/docs/installation/self-hosting"
 echo ""
