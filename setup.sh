@@ -439,9 +439,9 @@ if [ "$DEPLOY_MODE" = "basic" ]; then
     echo "  Proxy to:   http://127.0.0.1:${HTTP_PORT}"
 fi
 if [ "$DEPLOY_MODE" = "local" ]; then
-    echo "  Telemetry:  off"
+    echo "  Telemetry:  Off"
 else
-    echo "  Telemetry:  on, read more: https://betterlytics.io/docs/installation/self-hosting#telemetry"
+    echo "  Telemetry:  On (turn off: TELEMETRY_ENABLED=false)"
 fi
 echo ""
 echo "-------------------------------------------"
