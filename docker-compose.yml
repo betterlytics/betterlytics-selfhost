@@ -4,7 +4,7 @@ x-logging: &default-logging
     max-size: "10m"
     max-file: "5"
 
-x-betterlytics-image: &betterlytics-image ghcr.io/betterlytics/betterlytics-selfhost:vX.Y.Z
+x-betterlytics-image: &betterlytics-image ghcr.io/betterlytics/betterlytics-selfhost:v1.5.1
 
 services:
   betterlytics-selfhost:
