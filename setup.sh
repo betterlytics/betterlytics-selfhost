@@ -404,6 +404,16 @@ BIND_ADDRESS="${BIND_ADDRESS}"
 SECRET_BASE="${SECRET_BASE}"
 
 EOF
+if [ "$DEPLOY_MODE" = "local" ]; then
+    _telemetry="false"
+else
+    _telemetry="true"
+fi
+cat >> "$ENV_FILE" <<EOF
+# --- Telemetry ---
+TELEMETRY_ENABLED="${_telemetry}"
+
+EOF
 )
 chmod 600 "$ENV_FILE"
 
@@ -430,6 +440,11 @@ echo "  Domain:     ${PUBLIC_URL#*://}"
 echo "  URL:        ${ACCESS_URL}"
 if [ "$DEPLOY_MODE" = "basic" ]; then
     echo "  Proxy to:   http://127.0.0.1:${HTTP_PORT}"
+fi
+if [ "$DEPLOY_MODE" = "local" ]; then
+    echo "  Telemetry:  Off"
+else
+    echo "  Telemetry:  On (turn off: TELEMETRY_ENABLED=false)"
 fi
 echo ""
 echo "-------------------------------------------"
