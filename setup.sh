@@ -405,12 +405,15 @@ SECRET_BASE="${SECRET_BASE}"
 
 EOF
 if [ "$DEPLOY_MODE" = "local" ]; then
-    cat >> "$ENV_FILE" <<EOF
+    _telemetry="false"
+else
+    _telemetry="true"
+fi
+cat >> "$ENV_FILE" <<EOF
 # --- Telemetry ---
-TELEMETRY_ENABLED="false"
+TELEMETRY_ENABLED="${_telemetry}"
 
 EOF
-fi
 )
 chmod 600 "$ENV_FILE"
 
