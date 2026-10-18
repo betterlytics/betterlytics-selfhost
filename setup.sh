@@ -404,6 +404,14 @@ BIND_ADDRESS="${BIND_ADDRESS}"
 SECRET_BASE="${SECRET_BASE}"
 
 EOF
+if [ "$DEPLOY_MODE" = "local" ]; then
+    cat >> "$ENV_FILE" <<EOF
+# --- Telemetry ---
+# Off for "Try locally" installs. Set to true to send the daily instance report.
+TELEMETRY_ENABLED="false"
+
+EOF
+fi
 )
 chmod 600 "$ENV_FILE"
 
@@ -449,12 +457,18 @@ echo "-------------------------------------------"
 echo "  Telemetry"
 echo "-------------------------------------------"
 echo ""
-echo "  Starting 24 hours after the first start,"
-echo "  Betterlytics sends a random instance ID"
-echo "  and its version to betterlytics.io once"
-echo "  a day, so we can count installs. To turn"
-echo "  it off, add TELEMETRY_ENABLED=false to"
-echo "  .env before starting. Details:"
+if [ "$DEPLOY_MODE" = "local" ]; then
+    echo "  Off for this local install"
+    echo "  (TELEMETRY_ENABLED=\"false\" in .env)."
+    echo "  Nothing is sent. Details:"
+else
+    echo "  Starting 24 hours after the first start,"
+    echo "  Betterlytics sends a random instance ID"
+    echo "  and its version to betterlytics.io once"
+    echo "  a day, so we can count installs. To turn"
+    echo "  it off, add TELEMETRY_ENABLED=false to"
+    echo "  .env before starting. Details:"
+fi
 echo ""
 echo "  https://betterlytics.io/docs/installation/self-hosting#telemetry"
 echo ""
