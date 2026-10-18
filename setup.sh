@@ -407,7 +407,6 @@ EOF
 if [ "$DEPLOY_MODE" = "local" ]; then
     cat >> "$ENV_FILE" <<EOF
 # --- Telemetry ---
-# Off for "Try locally" installs. Set to true to send the daily instance report.
 TELEMETRY_ENABLED="false"
 
 EOF
@@ -439,6 +438,11 @@ echo "  URL:        ${ACCESS_URL}"
 if [ "$DEPLOY_MODE" = "basic" ]; then
     echo "  Proxy to:   http://127.0.0.1:${HTTP_PORT}"
 fi
+if [ "$DEPLOY_MODE" = "local" ]; then
+    echo "  Telemetry:  off"
+else
+    echo "  Telemetry:  on, read more: https://betterlytics.io/docs/installation/self-hosting#telemetry"
+fi
 echo ""
 echo "-------------------------------------------"
 echo "  Next steps"
@@ -452,25 +456,6 @@ echo "  2. Open ${ACCESS_URL} in your browser"
 echo "     and create your account."
 echo "     The first account created becomes"
 echo "     the admin."
-echo ""
-echo "-------------------------------------------"
-echo "  Telemetry"
-echo "-------------------------------------------"
-echo ""
-if [ "$DEPLOY_MODE" = "local" ]; then
-    echo "  Off for this local install"
-    echo "  (TELEMETRY_ENABLED=\"false\" in .env)."
-    echo "  Nothing is sent. Details:"
-else
-    echo "  Starting 24 hours after the first start,"
-    echo "  Betterlytics sends a random instance ID"
-    echo "  and its version to betterlytics.io once"
-    echo "  a day, so we can count installs. To turn"
-    echo "  it off, add TELEMETRY_ENABLED=false to"
-    echo "  .env before starting. Details:"
-fi
-echo ""
-echo "  https://betterlytics.io/docs/installation/self-hosting#telemetry"
 echo ""
 echo "-------------------------------------------"
 echo "  Optional configuration"
