@@ -54,6 +54,8 @@ services:
       - S3_FORCE_PATH_STYLE
       - S3_SSE_ENABLED
       - ALLOW_PRIVATE_TARGETS
+      - TELEMETRY_ENABLED
+      - DO_NOT_TRACK
     extra_hosts:
       - "host.docker.internal:host-gateway"
     restart: unless-stopped
