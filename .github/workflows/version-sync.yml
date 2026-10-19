@@ -3,15 +3,36 @@ name: Version sync
 on:
   push:
   pull_request:
+  # Called by publish.yml so a release fails before anything is pushed
+  workflow_call:
+    outputs:
+      version:
+        description: The agreed version, which is also the betterlytics tag to build
+        value: ${{ jobs.check.outputs.version }}
 
 jobs:
   check:
     runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.versions.outputs.version }}
     steps:
       - uses: actions/checkout@v4
-      - name: Compose image tag matches BETTERLYTICS_VERSION
+      - name: Release tag, BETTERLYTICS_REF and compose image tag match BETTERLYTICS_VERSION
+        id: versions
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
         run: |
           env_v=$(sed -n 's/^BETTERLYTICS_VERSION=//p' base/.env.base)
+          ref=$(tr -d '[:space:]' < BETTERLYTICS_REF)
           tags=$(grep -o 'ghcr.io/betterlytics/betterlytics-selfhost:[^[:space:]"]*' docker-compose.yml | cut -d: -f2 | sort -u)
-          echo "compose: $tags, .env.base: $env_v"
-          [ -n "$env_v" ] && [ "$tags" = "$env_v" ] || { echo "::error::docker-compose.yml image tag(s) '$tags' != BETTERLYTICS_VERSION '$env_v' in base/.env.base"; exit 1; }
+          echo "release: ${RELEASE_TAG:-none}, BETTERLYTICS_REF: $ref, compose: $tags, .env.base: $env_v"
+          ok=true
+          [ -n "$env_v" ] || { echo "::error::BETTERLYTICS_VERSION is missing from base/.env.base"; ok=false; }
+          [ "$tags" = "$env_v" ] || { echo "::error::docker-compose.yml image tag(s) '$tags' != BETTERLYTICS_VERSION '$env_v' in base/.env.base"; ok=false; }
+          [ "$ref" = "$env_v" ] || { echo "::error::BETTERLYTICS_REF '$ref' != BETTERLYTICS_VERSION '$env_v' in base/.env.base"; ok=false; }
+          if [ "$GITHUB_EVENT_NAME" = "release" ] && [ "$RELEASE_TAG" != "$env_v" ]; then
+            echo "::error::Release tag '$RELEASE_TAG' != BETTERLYTICS_VERSION '$env_v' in base/.env.base"
+            ok=false
+          fi
+          $ok || exit 1
+          echo "version=$env_v" >> "$GITHUB_OUTPUT"
